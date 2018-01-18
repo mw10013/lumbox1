@@ -1,0 +1,19 @@
+[
+ {:db/ident :foo-fn
+  :db/fn    #db/fn {:lang   "clojure"
+                    :params [db]
+                    :code   [[:db/add [:user/email "mick@jones.com"] :user/nickname "Micky Foo"]]}}
+ {:db/ident :bar-fn
+  :db/fn    #db/fn {:lang   "clojure"
+                    :params [db]
+                    :code   [[:db/add [:user/email "mick@jones.com"] :user/nickname "Micky Bar"]]}}
+ {:db/ident :retract-stale-many-refs
+  :db/doc "Does not handle isComponent refs to retract the entire entity."
+  :db/fn    #db/fn {:lang     "clojure"
+                    :requires [[clojure.set] [datomic.api :as d]]
+                    :params   [db eid a new-refs]
+                    :code     "(let [old-refs (->> eid (d/entity db) a (map :db/id) set)
+                                    new-refs (->> new-refs (map (comp :db/id (partial d/entity db))) set)
+                                    stale-refs (clojure.set/difference old-refs new-refs)]
+                                (map #(vector :db/retract eid a %) stale-refs))"}}
+ ]
