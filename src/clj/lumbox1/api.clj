@@ -62,7 +62,8 @@
 
 (defn delete-user-by-email
   [_ {email :email} _]
-  (db/delete-user! [:user/email email]))
+  (db/delete-user! [:user/email email])
+  email)
 
 (defn random-die-roll-once
   [_ _ {:keys [num_sides]}]

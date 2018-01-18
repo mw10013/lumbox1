@@ -41,30 +41,12 @@
         (assoc :result result))))
 
 (rf/reg-event-fx
-  :upsert-user
-  (fn [cofx [_]]
-    {:http-xhrio {:method :post
-                  :uri "/upsert-user"
-                  :params (-> cofx :db :user)
-                  :format (ajax/transit-request-format)
-                  :response-format (ajax/transit-response-format)
-                  :on-success [:upsert-user-succeeded]
-                  :on-failure [:http-xhrio-failed]}}))
-
-(rf/reg-event-db
-  :upsert-user-succeeded
-  (fn [db [_ result]]
-    (-> db
-        (assoc :status ":upsert-user-succeeded")
-        (assoc :result result))))
-
-(rf/reg-event-fx
   :get-user-by-email
   (fn [cofx [_ email]]
     (let [email (or email (-> cofx :db :user :email))]
       {:http-xhrio {:method          :post
                     :uri             "/graphql"
-                    :params          {:query         "query UserByEmail($email: String!) { user_by_email(email: $email) { id first_name last_name email }}"
+                    :params          {:query         "query UserByEmail($email: String!) { user_by_email(email: $email) { first_name last_name email id}}"
                                       :variables     {:email email}
                                       :operationName "UserByEmail"}
                     :format          (ajax/json-request-format)
@@ -72,11 +54,17 @@
                     :on-success      [:get-user-by-email-succeeded]
                     :on-failure      [:http_xhrio-failed]}})))
 
-(defn ^:private graphql-to-clj
-  "Transform graphql map to clj."
+(defn ^:private graphql-to-clojure
+  "Transform graphql map to clojure."
   [m]
   (into {} (map (fn [[k v]]
                   [(-> k name (clojure.string/replace \_ \-) keyword) v]) m)))
+
+(defn ^:private clojure-to-graphql
+  "Transform clojure map to graphql"
+  [m]
+  (into {} (map (fn [[k v]]
+                  [(-> k name (clojure.string/replace \- \_) keyword) v]) m)))
 
 (rf/reg-event-db
   :get-user-by-email-succeeded
@@ -84,7 +72,52 @@
     (-> db
         (assoc :status e)
         (assoc :result result)
-        (update :user merge (-> result :data :user_by_email graphql-to-clj)))))
+        (update :user merge (-> result :data :user_by_email graphql-to-clojure)))))
+
+(rf/reg-event-fx
+  :upsert-user
+  (fn [{db :db}
+       [_]]
+    {:http-xhrio {:method          :post
+                  :uri             "/graphql"
+                  :params          {:query     "mutation UpsertUser($email: String! $first_name: String, $last_name: String) {
+                  upsert_user(email: $email first_name: $first_name last_name: $last_name) { email first_name last_name id }}"
+                                    :variables (-> db :user (select-keys [:email :first-name :last-name]) clojure-to-graphql)}
+                  :format          (ajax/transit-request-format)
+                  :response-format (ajax/transit-response-format)
+                  :on-success      [:upsert-user-succeeded]
+                  :on-failure      [:http-xhrio-failed]}}))
+
+; TODO: Handle graphql :errors
+(rf/reg-event-db
+  :upsert-user-succeeded
+  (fn [db [e result]]
+    (-> db
+        (assoc :status e)
+        (assoc :result result)
+        (update :user merge (-> result :data :upsert_user graphql-to-clojure)))))
+
+(rf/reg-event-fx
+  :delete-user-by-email
+  (fn [cofx [_ email]]
+    (let [email (or email (-> cofx :db :user :email))]
+      {:http-xhrio {:method          :post
+                    :uri             "/graphql"
+                    :params          {:query         "mutation DeleteUserByEmail($email: String!) { delete_user_by_email(email: $email) }"
+                                      :variables     {:email email}}
+                    :format          (ajax/json-request-format)
+                    :response-format (ajax/transit-response-format)
+                    :on-success      [:delete-user-by-email-succeeded]
+                    :on-failure      [:http_xhrio-failed]}})))
+
+; TODO: Handle graphql :errors
+(rf/reg-event-db
+  :delete-user-by-email-succeeded
+  (fn [db [e result]]
+    (-> db
+        (assoc :status e)
+        (assoc :result result)
+        (assoc :user {}))))
 
 ;;subscriptions
 

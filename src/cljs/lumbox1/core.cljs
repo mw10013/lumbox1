@@ -68,7 +68,7 @@
                                 :on-click #(rf/dispatch [:upsert-user])} "Upsert"]]
      [:div.col-auto
       [:button.btn.btn-primary {:type     "button" :disabled (empty? @(rf/subscribe [:user/email]))
-                                :on-click #(rf/dispatch [:delete-user])} "Delete"]]]
+                                :on-click #(rf/dispatch [:delete-user-by-email])} "Delete"]]]
     [:div.form-row.form-group.align-items-center
      [:div.col-auto
       [:button.btn.btn-secondary {:type "button" :on-click #(rf/dispatch [:get-user-by-email "mick@jones.com"])} "Get Mick Jones"]]
