@@ -130,6 +130,6 @@
 (defn init! []
   (rf/dispatch-sync [:initialize-db])
   (load-interceptors!)
-  (fetch-docs!)
+  #_(fetch-docs!)
   (hook-browser-navigation!)
   (mount-components))
