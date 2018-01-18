@@ -62,24 +62,20 @@
     [:div.form-row.form-group.align-items-center
      [:div.col-auto
       [:button.btn.btn-primary {:type     "button" :disabled (empty? @(rf/subscribe [:user/email]))
-                                :on-click #(rf/dispatch [:get-user])} "Get"]]
+                                :on-click #(rf/dispatch [:get-user-by-email])} "Get"]]
      [:div.col-auto
       [:button.btn.btn-primary {:type     "button" :disabled (empty? @(rf/subscribe [:user/email]))
-                                :on-click #(rf/dispatch [:upsert-user])} "Upsert"]]]
+                                :on-click #(rf/dispatch [:upsert-user])} "Upsert"]]
+     [:div.col-auto
+      [:button.btn.btn-primary {:type     "button" :disabled (empty? @(rf/subscribe [:user/email]))
+                                :on-click #(rf/dispatch [:delete-user])} "Delete"]]]
     [:div.form-row.form-group.align-items-center
      [:div.col-auto
-      [:button.btn.btn-secondary {:type "button" :on-click #(rf/dispatch [:get-user "mick@jones.com"])} "Populate Mick Jones"]]
+      [:button.btn.btn-secondary {:type "button" :on-click #(rf/dispatch [:get-user-by-email "mick@jones.com"])} "Get Mick Jones"]]
      [:div.col-auto
-      [:button.btn.btn-secondary {:type "button" :on-click #(rf/dispatch [:get-user "mick@jagger.com"])} "Populate Mick Jagger"]]
+      [:button.btn.btn-secondary {:type "button" :on-click #(rf/dispatch [:get-user-by-email "mick@jagger.com"])} "Get Mick Jagger"]]
      [:div.col-auto
-      [:button.btn.btn-secondary {:type "button" :on-click #(rf/dispatch [:get-user "thomas@dolby.com"])} "Populate Thomas Dolby"]]]
-    [:div.form-row.form-group.align-items-center
-     [:div.col-auto
-      [:button.btn.btn-secondary {:type "button" :on-click #(rf/dispatch [:query-user-by-email "mick@jones.com"])} "Query Mick Jones"]]
-     [:div.col-auto
-      [:button.btn.btn-secondary {:type "button" :on-click #(rf/dispatch [:query-user-by-email "mick@jagger.com"])} "Query Mick Jagger"]]
-     [:div.col-auto
-      [:button.btn.btn-secondary {:type "button" :on-click #(rf/dispatch [:query-hello])} "Hello"]]]
+      [:button.btn.btn-secondary {:type "button" :on-click #(rf/dispatch [:get-user-by-email "thomas@dolby.com"])} "Get Thomas Dolby"]]]
     [:div.form-group
      [:label "Status"]
      [:textarea.form-control {:read-only true :value @(rf/subscribe [:status])}]]

@@ -4,5 +4,4 @@
   {:page   :home
    :status ""
    :result ""
-   :user   {:id "" :first-name "" :last-name "" :email "" :nickname ""}
-   :buffer {:id "" :first-name "" :last-name "" :email "" :nickname ""}})
+   :user   {:id "" :first-name "" :last-name "" :email "" :nickname ""}})

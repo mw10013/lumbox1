@@ -33,44 +33,12 @@
   :set-user-email
   (fn [db [_ s]] (assoc-in db [:user :email] s)))
 
-(reg-event-db
-  :set-buffer-user-email
-  (fn [db [_ s]] (assoc-in db [:buffer :user/email] s)))
-
-(reg-event-db
-  :set-buffer-user-first-name
-  (fn [db [_ s]] (assoc-in db [:buffer :user/first-name] s)))
-
-(reg-event-db
-  :set-buffer-user-last-name
-  (fn [db [_ s]] (assoc-in db [:buffer :user/last-name] s)))
-
 (rf/reg-event-db
   :http-xhrio-failed
   (fn [db [_ result]]
     (-> db
         (assoc :status "http xhrio failed")
         (assoc :result result))))
-
-(rf/reg-event-fx
-  :get-user
-  (fn [cofx [_ email]]
-    (let [email (or email (-> cofx :db :user :email))]
-      #_(println ":get-user: email: " email)
-      {:http-xhrio {:method          :get
-                    :uri             (str "/user/" email)
-                    :response-format (ajax/transit-response-format)
-                    :on-success      [:get-user-succeeded]
-                    :on-failure      [:http-xhrio-failed]}})))
-
-(rf/reg-event-db
-  :get-user-succeeded
-  (fn [db [_ result]]
-    #_(def debug-result result)
-    (-> db
-        (assoc :status ":get-user-succeeded")
-        (assoc :result result)
-        (assoc :user result))))
 
 (rf/reg-event-fx
   :upsert-user
@@ -90,37 +58,19 @@
         (assoc :status ":upsert-user-succeeded")
         (assoc :result result))))
 
-(rf/reg-event-db
-  :query-succeeded
-  (fn [db [_ result]]
-    (-> db
-        (assoc :status ":query-succeeded")
-        (assoc :result result)
-        (assoc :user result) )))
-
 (rf/reg-event-fx
-  :query-hello
-  (fn [cofx [_]]
-    {:http-xhrio {:method          :get
-                  :uri             "/graphql"
-                  :params          {:query "{ hello }"}
-                  :format          (ajax/url-request-format)
-                  :response-format (ajax/transit-response-format)
-                  :on-success      [:query-succeeded]
-                  :on-failure      [:http-xhrio-failed]}}))
-
-(rf/reg-event-fx
-  :query-user-by-email
-  (fn [_ [_ email]]
-    {:http-xhrio {:method          :post
-                  :uri             "/graphql"
-                  :params          {:query "query UserByEmail($email: String!) { user_by_email(email: $email) { id first_name last_name email }}"
-                                    :variables {:email email}
-                                    :operationName "UserByEmail"}
-                  :format          (ajax/json-request-format)
-                  :response-format (ajax/transit-response-format)
-                  :on-success      [:query-user-by-email-succeeded]
-                  :on-failure      [:http_xhrio-failed]}}))
+  :get-user-by-email
+  (fn [cofx [_ email]]
+    (let [email (or email (-> cofx :db :user :email))]
+      {:http-xhrio {:method          :post
+                    :uri             "/graphql"
+                    :params          {:query         "query UserByEmail($email: String!) { user_by_email(email: $email) { id first_name last_name email }}"
+                                      :variables     {:email email}
+                                      :operationName "UserByEmail"}
+                    :format          (ajax/json-request-format)
+                    :response-format (ajax/transit-response-format)
+                    :on-success      [:get-user-by-email-succeeded]
+                    :on-failure      [:http_xhrio-failed]}})))
 
 (defn ^:private graphql-to-clj
   "Transform graphql map to clj."
@@ -129,7 +79,7 @@
                   [(-> k name (clojure.string/replace \_ \-) keyword) v]) m)))
 
 (rf/reg-event-db
-  :query-user-by-email-succeeded
+  :get-user-by-email-succeeded
   (fn [db [e result]]
     (-> db
         (assoc :status e)
