@@ -3,7 +3,8 @@
   :description "FIXME: write description"
   :url "http://example.com/FIXME"
 
-  :dependencies [[clj-time "0.14.0"]
+  :dependencies [[buddy "2.0.0"]
+                 [clj-time "0.14.0"]
                  [cljs-ajax "0.7.3"]
                  [com.datomic/datomic-free "0.9.5656" :exclusions [org.slf4j/log4j-over-slf4j org.slf4j/slf4j-nop]]
                  [com.google.guava/guava "21.0"]
@@ -17,14 +18,14 @@
                  [metosin/muuntaja "0.4.1"]
                  [metosin/ring-http-response "0.9.0"]
                  [mount "0.1.11"]
-                 [org.clojure/clojure "1.8.0"]
+                 [org.clojure/clojure "1.9.0"]
                  [org.clojure/clojurescript "1.9.946" :scope "provided"]
                  [org.clojure/tools.cli "0.3.5"]
                  [org.clojure/tools.logging "0.4.0"]
-                 [org.clojure/tools.reader "1.1.0"]
-                 [org.webjars.bower/tether "1.4.0"]
-                 [org.webjars/bootstrap "4.0.0-beta.2" #_"4.0.0-alpha.5"]
-                 [org.webjars/font-awesome "4.7.0"]
+                 [org.clojure/tools.reader "1.1.2"]
+                 [org.webjars.bower/tether "1.4.3"]
+                 [org.webjars/bootstrap "4.0.0"]
+                 [org.webjars/font-awesome "5.0.2"]
                  [re-frame "0.10.2"]
                  [reagent "0.7.0"]
                  [reagent-utils "0.2.1"]
@@ -32,7 +33,7 @@
                  [ring/ring-core "1.6.3"]
                  [ring/ring-defaults "0.3.1"]
                  [secretary "1.2.3"]
-                 [selmer "1.11.3"]
+                 [selmer "1.11.5"]
                  [day8.re-frame/http-fx "0.1.4"]
                  [com.walmartlabs/lacinia "0.23.0"]]
 

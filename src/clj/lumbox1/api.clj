@@ -8,7 +8,8 @@
             [com.walmartlabs.lacinia.util :refer [attach-resolvers]]
             [com.walmartlabs.lacinia.util :as util]
             [lumbox1.db.core :as db]
-            [clojure.string :as str]))
+            [clojure.string :as str]
+            [buddy.hashers :as hashers]))
 
 (defn ^:private datomic-to-graphql
   "Transform datomic map to graphql."
@@ -65,6 +66,12 @@
   (db/delete-user! [:user/email email])
   email)
 
+(defn register-user
+  [_ {{:keys [email password]} :input} _]
+  (let [encrypted-password (hashers/encrypt password)]
+    (println "register-user: " email password encrypted-password (hashers/check password encrypted-password))
+    {:user (user-by-email nil {:email "thomas@dolby.com"} nil)}))
+
 (defn random-die-roll-once
   [_ _ {:keys [num_sides]}]
   (-> num_sides rand-int inc))
@@ -89,6 +96,11 @@
   (let [e (db/update-message (Long. id) content author)]
     {:id (-> e :db/id str) :content (:msg/content e) :author (:msg/author e)}))
 
+(defn get-die
+  #_[_ {:keys [num_sides] :or {:num_sides 6}} _]
+  [_ {:keys [num_sides]} _]
+  {:num_sides (or num_sides 6)})
+
 (def hello-schema (schema/compile
                     {:queries {:hello
                                ;; String is quoted here; in EDN the quotation is not required
@@ -108,14 +120,15 @@
                                              :query/roll-three-dice  (fn [& _] (repeatedly 3 (comp inc (partial rand-int 6))))
                                              :query/roll-dice        (fn [_ {:keys [num_dice num_sides]} _]
                                                                        (repeatedly num_dice #(-> num_sides (or 6) rand-int inc)))
-                                             :query/get-die (fn [_ {:keys [num_sides] :or {:num_sides 6}} _] {:num_sides num_sides})
+                                             :query/get-die get-die #_(fn [_ {:keys [num_sides] :or {:num_sides 6}} _] {:num_sides num_sides})
                                              :query/get-message get-message
                                              :query/users users
                                              :query/user-by-email    user-by-email
                                              :mutation/create-message create-message
                                              :mutation/update-message update-message
                                              :mutation/upsert-user   upsert-user
-                                             :mutation/delete-user-by-email delete-user-by-email})
+                                             :mutation/delete-user-by-email delete-user-by-email
+                                             :mutation/register-user register-user})
                      schema/compile))
 
 (comment

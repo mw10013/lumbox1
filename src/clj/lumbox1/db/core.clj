@@ -30,6 +30,9 @@
                  :db/valueType   :db.type/string
                  :db/cardinality :db.cardinality/one
                  :db/unique      :db.unique/identity}
+                {:db/ident :user/password
+                 :db/valueType :db.type/string
+                 :db/cardinality :db.cardinality/one}
                 {:db/ident       :user/nickname
                  :db/valueType   :db.type/string
                  :db/cardinality :db.cardinality/one}
@@ -130,6 +133,7 @@
   (upsert-user! {:user/email "mick@jones.com" :user/friends [[:user/email "mick@jagger.com"] [:user/email "thomas@dolby.com"]]}))
 
 (comment
+  (create-schema)
   (def x (create-message "Hello message" "author1"))
   (upsert-user! {:user/first-name "Mick" :user/last-name "Jones" :user/email "mick@jones.com"})
   (upsert-user! {:user/first-name "Mickey" :user/last-name "Jonesy" :user/email "mick@jones.com"})
