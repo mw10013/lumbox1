@@ -3,7 +3,8 @@
             [mount.core :refer [defstate]]
             [lumbox1.config :refer [env]]
             [clojure.java.io :as io]
-            [clojure.edn :as edn]))
+            [clojure.edn :as edn]
+            [buddy.hashers :as hashers]))
 
 (declare create-schema create-fn-schema populate)
 
@@ -30,7 +31,7 @@
                  :db/valueType   :db.type/string
                  :db/cardinality :db.cardinality/one
                  :db/unique      :db.unique/identity}
-                {:db/ident :user/password
+                {:db/ident :user/encrypted-password
                  :db/valueType :db.type/string
                  :db/cardinality :db.cardinality/one}
                 {:db/ident       :user/nickname
@@ -126,9 +127,12 @@
     (d/entity (:db-after tx) id)))
 
 (defn populate []
-  (upsert-user! {:user/first-name "Mick" :user/last-name "Jones" :user/email "mick@jones.com" :user/nickname "Mickey"})
-  (upsert-user! {:user/first-name "Mick" :user/last-name "Jagger" :user/email "mick@jagger.com"})
-  (upsert-user! {:user/first-name "Thomas" :user/last-name "Dolby" :user/email "thomas@dolby.com"
+  (upsert-user! {:user/first-name "Mick" :user/last-name "Jones" :user/email "mick@jones.com"
+                 :user/encrypted-password (hashers/encrypt "letmein") :user/nickname "Mickey"})
+  (upsert-user! {:user/first-name "Mick" :user/last-name "Jagger"
+                 :user/email "mick@jagger.com" :user/encrypted-password (hashers/encrypt "letmein")})
+  (upsert-user! {:user/first-name "Thomas" :user/last-name "Dolby"
+                 :user/email "thomas@dolby.com" :user/encrypted-password (hashers/encrypt "open sesame")
                 :user/friends [[:user/email "mick@jones.com"]]})
   (upsert-user! {:user/email "mick@jones.com" :user/friends [[:user/email "mick@jagger.com"] [:user/email "thomas@dolby.com"]]}))
 

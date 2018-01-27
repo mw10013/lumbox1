@@ -70,7 +70,8 @@
   [_ {{:keys [email password]} :input} _]
   (let [encrypted-password (hashers/encrypt password)]
     (println "register-user: " email password encrypted-password (hashers/check password encrypted-password))
-    {:user (user-by-email nil {:email "thomas@dolby.com"} nil)}))
+    (db/upsert-user! {:user/email email :user/encrypted-password encrypted-password})
+    {:user (user-by-email nil {:email email} nil)}))
 
 (defn random-die-roll-once
   [_ _ {:keys [num_sides]}]
