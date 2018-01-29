@@ -73,7 +73,7 @@
     <orderEntry type="library" name="Leiningen: com.lambdaworks/scrypt:1.4.0" level="project" />
     <orderEntry type="library" name="Leiningen: com.stuartsierra/component:0.3.2" level="project" />
     <orderEntry type="library" name="Leiningen: com.stuartsierra/dependency:0.2.0" level="project" />
-    <orderEntry type="library" name="Leiningen: com.walmartlabs/lacinia:0.23.0" level="project" />
+    <orderEntry type="library" name="Leiningen: com.walmartlabs/lacinia:0.24.0-rc-2" level="project" />
     <orderEntry type="library" name="Leiningen: commons-beanutils:1.9.2" level="project" />
     <orderEntry type="library" name="Leiningen: commons-codec:1.10" level="project" />
     <orderEntry type="library" name="Leiningen: commons-collections:3.2.1" level="project" />
