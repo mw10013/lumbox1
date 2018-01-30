@@ -22,13 +22,6 @@
   [_ _ _]
   (map datomic-to-graphql (db/users)))
 
-(comment
-  (l/execute schema
-             "{ users {
-               id email friends {
-                 email }}}" nil nil)
-  )
-
 (defn user-friends
   [_ _ {friends :friends}]
   (map #(-> % :db/id db/user datomic-to-graphql) friends))
@@ -39,21 +32,6 @@
     (datomic-to-graphql x)
     (resolve-as nil {:message "User not found."
                      :status 404})))
-
-(comment
-  (user-by-email nil {:email "mick@jones.com"} nil)
-  (db/user [:user/email "mick@jones.com"])
-  (mount.core/start #'lumbox1.api/schema)
-
-  (l/execute schema
-             "query UserByEmail($email: String!) {
-               user_by_email(email: $email) {
-                 id first_name last_name email friends {
-                   id email friends {
-                     id email}}}}"
-             {:email "mick@jones.com"} nil)
-  (l/execute schema "{ user_by_email(email: \"non-existent@email.com\") { id email}}" nil nil)
-   )
 
 (defn upsert-user
   [_ args _]
@@ -69,9 +47,16 @@
 (defn register-user
   [_ {{:keys [email password]} :input} _]
   (let [encrypted-password (hashers/encrypt password)]
-    (println "register-user: " email password encrypted-password (hashers/check password encrypted-password))
     (db/upsert-user! {:user/email email :user/encrypted-password encrypted-password})
     {:user (user-by-email nil {:email email} nil)}))
+
+(defn login
+  [_ {{:keys [email password]} :input} _]
+  (if-let [user (db/user [:user/email email])]
+    (if (hashers/check password (:user/encrypted-password user))
+      {:user (datomic-to-graphql user)}
+      (resolve-as nil {:message "Unauthorized." :status 401}))
+    (resolve-as nil {:message "User not found." :status 404})))
 
 (defn random-die-roll-once
   [_ _ {:keys [num_sides]}]
@@ -120,6 +105,7 @@
                                              :query/random           (fn [& _] (rand))
                                              :query/roll-three-dice  (fn [& _] (repeatedly 3 (comp inc (partial rand-int 6))))
                                              :query/roll-dice        (fn [_ {:keys [num_dice num_sides]} _]
+
                                                                        (repeatedly num_dice #(-> num_sides (or 6) rand-int inc)))
                                              :query/get-die get-die #_(fn [_ {:keys [num_sides] :or {:num_sides 6}} _] {:num_sides num_sides})
                                              :query/get-message get-message
@@ -129,7 +115,8 @@
                                              :mutation/update-message update-message
                                              :mutation/upsert-user   upsert-user
                                              :mutation/delete-user-by-email delete-user-by-email
-                                             :mutation/register-user register-user})
+                                             :mutation/register-user register-user
+                                             :mutation/login login})
                      schema/compile))
 
 (comment
@@ -161,6 +148,25 @@
    (l/execute schema "{ user_by_email(email: \"howard@jones.com\") { id email first_name last_name  }}" nil nil)
    (l/execute schema "mutation M {delete_user_by_email(email: \"howard@jones.com\")}  " nil nil)
    )
+
+(comment
+  (l/execute schema
+             "{ users {
+               id email friends {
+                 email }}}" nil nil)
+  (user-by-email nil {:email "mick@jones.com"} nil)
+  (db/user [:user/email "mick@jones.com"])
+  (mount.core/start #'lumbox1.api/schema)
+
+  (l/execute schema
+             "query UserByEmail($email: String!) {
+               user_by_email(email: $email) {
+                 id first_name last_name email friends {
+                   id email friends {
+                     id email}}}}"
+             {:email "mick@jones.com"} nil)
+  (l/execute schema "{ user_by_email(email: \"non-existent@email.com\") { id email}}" nil nil)
+  )
 
 ;; curl -X POST -H "Content-Type: application/json" -d '{"query": "{user_by_email(email: \"mick@jones.com\") {id first_name last_name }}"}' http://localhost:3000/graphql
 

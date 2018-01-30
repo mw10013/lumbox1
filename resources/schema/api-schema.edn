@@ -1,15 +1,17 @@
 {:objects
  {:User                {:description "User"
-                        :fields      {:id         {:type (non-null ID)}
-                                      :first_name {:type        String
-                                                   :description "First name of user."}
-                                      :last_name  {:type        String
-                                                   :description "Last name of user."}
-                                      :email      {:type        String
-                                                   :description "Email of user."}
-                                      :friends    {:type        (list :User)
-                                                   :description "Friends of user."
-                                                   :resolve     :User/friends}}}
+                        :fields      {:id                 {:type (non-null ID)}
+                                      :first_name         {:type        String
+                                                           :description "First name of user."}
+                                      :last_name          {:type        String
+                                                           :description "Last name of user."}
+                                      :email              {:type        String
+                                                           :description "Email of user."}
+                                      :encrypted_password {:type        String
+                                                           :description "Encrypted password of user."}
+                                      :friends            {:type        (list :User)
+                                                           :description "Friends of user."
+                                                           :resolve     :User/friends}}}
   :RandomDie           {:description "A random die."
                         :fields      {:num_sides {:type (non-null Int)}
                                       :roll_once {:type (non-null Int) :resolve :random-die/roll-once}
@@ -21,11 +23,15 @@
                                       :content {:type String}
                                       :author  {:type String}}}
   :RegisterUserPayload {:description "Register user payload."
+                        :fields      {:user {:type (non-null :User)}}}
+  :LoginPayload        {:description "Login payload."
                         :fields      {:user {:type (non-null :User)}}}}
  :input-objects
  {:MessageInput      {:fields {:content {:type String}
                                :author  {:type String}}}
   :RegisterUserInput {:fields {:email    {:type (non-null String)}
+                               :password {:type (non-null String)}}}
+  :LoginInput        {:fields {:email    {:type (non-null String)}
                                :password {:type (non-null String)}}}}
  :queries
  {:hello            {:type String :resolve :query/hello}
@@ -78,4 +84,9 @@
   {:type        :RegisterUserPayload
    :description "Register user."
    :args        {:input {:type (non-null :RegisterUserInput)}}
-   :resolve     :mutation/register-user}}}
+   :resolve     :mutation/register-user}
+  :login
+  {:type        :LoginPayload
+     :description "Login."
+     :args        {:input {:type (non-null :LoginInput)}}
+     :resolve     :mutation/login}}}

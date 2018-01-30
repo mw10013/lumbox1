@@ -132,7 +132,7 @@
   (upsert-user! {:user/first-name "Mick" :user/last-name "Jagger"
                  :user/email "mick@jagger.com" :user/encrypted-password (hashers/encrypt "letmein")})
   (upsert-user! {:user/first-name "Thomas" :user/last-name "Dolby"
-                 :user/email "thomas@dolby.com" :user/encrypted-password (hashers/encrypt "open sesame")
+                 :user/email "thomas@dolby.com" :user/encrypted-password (hashers/encrypt "letmein")
                 :user/friends [[:user/email "mick@jones.com"]]})
   (upsert-user! {:user/email "mick@jones.com" :user/friends [[:user/email "mick@jagger.com"] [:user/email "thomas@dolby.com"]]}))
 
