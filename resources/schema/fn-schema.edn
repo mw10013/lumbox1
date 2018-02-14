@@ -16,4 +16,17 @@
                                     new-refs (->> new-refs (map (comp :db/id (partial d/entity db))) set)
                                     stale-refs (clojure.set/difference old-refs new-refs)]
                                 (map #(vector :db/retract eid a %) stale-refs))"}}
+
+ ;; Integrity database function for new entities with identity attrs
+ ;; From Professional Clojure
+ {:db/ident :add-identity
+  :db/fn #db/fn{:lang "clojure"
+                :params [db e ident-attr value]
+                :code "(if (d/entity db [ident-attr value])
+                         (throw (ex-info (str value \" already exists for \" ident-attr)
+                                         {:e e
+                                          :attribute ident-attr
+                                          :value value}))
+                         [[:db/add e ident-attr value]])"}}
+
  ]
