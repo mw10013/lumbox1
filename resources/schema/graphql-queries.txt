@@ -1,0 +1,40 @@
+# Queries
+# For use with graphiql
+
+query Users {
+  users {
+    email id encrypted_password
+  }
+}
+
+mutation RegisterUser($register_user_input: RegisterUserInput!) {
+  register_user(input: $register_user_input) {
+  	user {
+      email id encrypted_password
+    }
+  }
+}
+
+mutation DeleteUserByEmail($delete_user_by_email_input: String!) {
+  delete_user_by_email(email: $delete_user_by_email_input)
+}
+
+mutation Login($login_input: LoginInput!) {
+ login(input: $login_input) {
+  	user { email id encrypted_password }
+ }
+}
+
+# Variables
+
+{
+  "register_user_input": {
+    "email": "bee@sting.com",
+    "password": "letmein"
+  },
+  "delete_user_by_email_input": "bee@sting.com",
+  "login_input": {
+    "email": "thomas@dolby.com",
+    "password": "letmein"
+  }
+}

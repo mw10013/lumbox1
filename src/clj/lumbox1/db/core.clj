@@ -17,6 +17,10 @@
 (defstate ^{:on-reload :noop} schema
           :start (do (create-schema) (create-fn-schema) (populate)))
 
+(defn db
+  []
+  (d/db conn))
+
 (defn create-schema []
   (let [schema [{:db/ident       :user/id
                  :db/valueType   :db.type/string
@@ -66,7 +70,14 @@
   (let [e (partial entity conn)]
     (map #(-> % first e d/touch) results)))
 
-(defn upsert-user!
+(defn create-user
+  [{:keys [:user/email :user/encrypted-password] :as user}]
+  @(d/transact conn [{:db/id "tempid" :user/encrypted-password encrypted-password}
+                     [:add-identity "tempid" :user/email email]]))
+
+
+
+(defn upsert-user
   [{:keys [:db/id :user/email :user/friends] :as user}]
   (let [t (apply conj [user] (when friends [[:retract-stale-many-refs (or id [:user/email email]) :user/friends friends]]))]
     @(d/transact conn t)))
@@ -78,32 +89,32 @@
     (touch conn user)))
 
 (defn users
-  []
-  (d/q '[:find [(pull ?e [*]) ...] :where [?e :user/email _]] (d/db conn)))
+  [db]
+  (d/q '[:find [(pull ?e [*]) ...] :where [?e :user/email _]] db))
 
 (comment
-  (users)
+  (users (d/db conn))
   )
 
 (defn user
-  [eid]
-  (let [x (d/pull (d/db conn) '[*] eid)]
+  [db eid]
+  (let [x (d/pull db '[*] eid)]
     (when (:user/email x) x)))
 
 (comment
-  (user 1000)
-  (user [:user/email "mick@jones.com"])
-  (user [:user/email "non-existent@email.com"])
+  (user (db) 1000)
+  (user (db) [:user/email "mick@jones.com"])
+  (user (db) [:user/email "non-existent@email.com"])
   )
 
-(defn delete-user!
+(defn delete-user
   [eid]
   @(d/transact conn [[:db.fn/retractEntity eid]]))
 
 (comment
-  (upsert-user! {:user/first-name "Sting" :user/last-name "" :user/email "sting@sting.com" :user/friends #{}})
-  (user [:user/email "sting@sting.com"])
-  (delete-user! [:user/email "sting@sting.com"])
+  (upsert-user {:user/first-name "Sting" :user/last-name "" :user/email "sting@sting.com" :user/friends #{}})
+  (user (db) [:user/email "sting@sting.com"])
+  (delete-user [:user/email "sting@sting.com"])
   )
 
 (defn get-message
@@ -127,35 +138,35 @@
     (d/entity (:db-after tx) id)))
 
 (defn populate []
-  (upsert-user! {:user/first-name "Mick" :user/last-name "Jones" :user/email "mick@jones.com"
+  (upsert-user {:user/first-name          "Mick" :user/last-name "Jones" :user/email "mick@jones.com"
                  :user/encrypted-password (hashers/encrypt "letmein") :user/nickname "Mickey"})
-  (upsert-user! {:user/first-name "Mick" :user/last-name "Jagger"
-                 :user/email "mick@jagger.com" :user/encrypted-password (hashers/encrypt "letmein")})
-  (upsert-user! {:user/first-name "Thomas" :user/last-name "Dolby"
-                 :user/email "thomas@dolby.com" :user/encrypted-password (hashers/encrypt "letmein")
-                :user/friends [[:user/email "mick@jones.com"]]})
-  (upsert-user! {:user/email "mick@jones.com" :user/friends [[:user/email "mick@jagger.com"] [:user/email "thomas@dolby.com"]]}))
+  (upsert-user {:user/first-name "Mick" :user/last-name "Jagger"
+                 :user/email     "mick@jagger.com" :user/encrypted-password (hashers/encrypt "letmein")})
+  (upsert-user {:user/first-name "Thomas" :user/last-name "Dolby"
+                 :user/email     "thomas@dolby.com" :user/encrypted-password (hashers/encrypt "letmein")
+                :user/friends    [[:user/email "mick@jones.com"]]})
+  (upsert-user {:user/email "mick@jones.com" :user/friends [[:user/email "mick@jagger.com"] [:user/email "thomas@dolby.com"]]}))
 
 (comment
   (create-schema)
   (def x (create-message "Hello message" "author1"))
-  (upsert-user! {:user/first-name "Mick" :user/last-name "Jones" :user/email "mick@jones.com"})
-  (upsert-user! {:user/first-name "Mickey" :user/last-name "Jonesy" :user/email "mick@jones.com"})
-  (upsert-user! {:user/first-name "Mickey" :user/last-name "" :user/email "mick@jones.com"})
-  (upsert-user! {:user/first-name "Sting" :user/last-name "" :user/email "sting@sting.com" :user/friends #{}})
-  (user [:user/email "mick@jagger.com"])
-  (user [:user/email "thomas@dolby.com"])
-  (user [:user/email "sting@sting.com"])
+  (upsert-user {:user/first-name "Mick" :user/last-name "Jones" :user/email "mick@jones.com"})
+  (upsert-user {:user/first-name "Mickey" :user/last-name "Jonesy" :user/email "mick@jones.com"})
+  (upsert-user {:user/first-name "Mickey" :user/last-name "" :user/email "mick@jones.com"})
+  (upsert-user {:user/first-name "Sting" :user/last-name "" :user/email "sting@sting.com" :user/friends #{}})
+  (user (db) [:user/email "mick@jagger.com"])
+  (user (db) [:user/email "thomas@dolby.com"])
+  (user (db) [:user/email "sting@sting.com"])
   (d/q '[:find ?e ?email :in $ :where [?e :user/email ?email]] (d/db conn))
   (d/q '[:find ?e ?email ?friends :in $ :where [?e :user/email ?email] [?e :user/friends ?friends]] (d/db conn))
-  (user [:user/email "mick@jones.com"])
-  (upsert-user! {:user/email "mick@jones.com" :user/first-name "Mick" :user/last-name "Jones"
+  (user (db) [:user/email "mick@jones.com"])
+  (upsert-user {:user/email    "mick@jones.com" :user/first-name "Mick" :user/last-name "Jones"
                  :user/friends #{}})
-  (upsert-user! {:user/email   "mick@jones.com" :user/first-name "Mick" :user/last-name "Jones"
+  (upsert-user {:user/email    "mick@jones.com" :user/first-name "Mick" :user/last-name "Jones"
                  :user/friends #{[:user/email "mick@jagger.com"]}})
-  (upsert-user! {:user/email   "mick@jones.com" :user/first-name "Mick" :user/last-name "Jones"
+  (upsert-user {:user/email    "mick@jones.com" :user/first-name "Mick" :user/last-name "Jones"
                  :user/friends #{[:user/email "mick@jagger.com"] [:user/email "thomas@dolby.com"]}})
-  (upsert-user! {:user/email   "mick@jones.com" :user/first-name "Mick" :user/last-name "Jones"
+  (upsert-user {:user/email    "mick@jones.com" :user/first-name "Mick" :user/last-name "Jones"
                  :user/friends #{[:user/email "thomas@dolby.com"]}})
 
   (d/invoke (d/db conn) :retract-stale-many-refs (d/db conn) [:user/email "mick@jones.com"] :user/friends [])

@@ -20,15 +20,15 @@
 
 (defn users
   [_ _ _]
-  (map datomic-to-graphql (db/users)))
+  (map datomic-to-graphql (db/users (db/db))))
 
 (defn user-friends
   [_ _ {friends :friends}]
-  (map #(-> % :db/id db/user datomic-to-graphql) friends))
+  (map #(-> % :db/id (partial db/user (db/db)) datomic-to-graphql) friends))
 
 (defn user-by-email
   [_ {email :email} _]
-  (if-let [x (db/user [:user/email email])]
+  (if-let [x (db/user (db/db) [:user/email email])]
     (datomic-to-graphql x)
     (resolve-as nil {:message "User not found."
                      :status 404})))
@@ -36,23 +36,28 @@
 (defn upsert-user
   [_ args _]
   (let [{:keys [first_name last_name email]} args]
-    (db/upsert-user! {:user/first-name first_name :user/last-name last_name :user/email email})
+    (db/upsert-user {:user/first-name first_name :user/last-name last_name :user/email email})
     (user-by-email nil {:email email} nil)))
 
 (defn delete-user-by-email
   [_ {email :email} _]
-  (db/delete-user! [:user/email email])
+  (db/delete-user [:user/email email])
   email)
 
 (defn register-user
   [_ {{:keys [email password]} :input} _]
-  (let [encrypted-password (hashers/encrypt password)]
-    (db/upsert-user! {:user/email email :user/encrypted-password encrypted-password})
-    {:user (user-by-email nil {:email email} nil)}))
+  (try
+    (let [encrypted-password (hashers/encrypt password)]
+      (db/create-user {:user/email email :user/encrypted-password encrypted-password})
+      {:user (user-by-email nil {:email email} nil)})
+    (catch Throwable t
+      (def tt t)
+      #_(resolve-as nil (or (ex-data t) {:message (.getMessage t) :ex-data? false}))
+      (resolve-as nil {:message (.getMessage t) :info (or (ex-data t) (some-> t .getCause ex-data))}))))
 
 (defn login
   [_ {{:keys [email password]} :input} _]
-  (if-let [user (db/user [:user/email email])]
+  (if-let [user (db/user (db/db) [:user/email email])]
     (if (hashers/check password (:user/encrypted-password user))
       {:user (datomic-to-graphql user)}
       (resolve-as nil {:message "Unauthorized." :status 401}))
@@ -155,7 +160,7 @@
                id email friends {
                  email }}}" nil nil)
   (user-by-email nil {:email "mick@jones.com"} nil)
-  (db/user [:user/email "mick@jones.com"])
+  (db/user (db/db) [:user/email "mick@jones.com"])
   (mount.core/start #'lumbox1.api/schema)
 
   (l/execute schema
