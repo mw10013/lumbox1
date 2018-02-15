@@ -119,6 +119,26 @@
         (assoc :result result)
         (assoc :user {}))))
 
+(rf/reg-event-fx
+  :register-user
+  (fn [_ [_ email password]]
+    {:http-xhrio {:method          :post
+                  :uri             "/graphql"
+                  :params          {:query     "mutation RegisterUser($register_user_input: RegisterUserInput!) {
+                  register_user(input: $register_user_input) { user { email id encrypted_password } } }"
+                                    :variables (clojure-to-graphql {:register_user_input {:email email :password password}})}
+                  :format          (ajax/transit-request-format)
+                  :response-format (ajax/transit-response-format)
+                  :on-success      [:register-user-succeeded]
+                  :on-failure      [:http-xhrio-failed]}}))
+
+(rf/reg-event-db
+  :register-user-succeeded
+  (fn [db [e result]]
+    (-> db
+        (assoc :status e)
+        (assoc :result result))))
+
 ;;subscriptions
 
 (reg-sub
