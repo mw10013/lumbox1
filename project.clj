@@ -35,7 +35,9 @@
                  [secretary "1.2.3"]
                  [selmer "1.11.5"]
                  [day8.re-frame/http-fx "0.1.4"]
-                 [com.walmartlabs/lacinia "0.24.0-rc-2" #_"0.23.0"]]
+                 [com.walmartlabs/lacinia "0.24.0-rc-2" #_"0.23.0"]
+                 [org.clojure/spec.alpha "0.1.143"]
+                 [com.cognitect/anomalies "0.1.12"]]
 
   :min-lein-version "2.0.0"
 

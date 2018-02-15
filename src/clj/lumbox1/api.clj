@@ -9,7 +9,8 @@
             [com.walmartlabs.lacinia.util :as util]
             [lumbox1.db.core :as db]
             [clojure.string :as str]
-            [buddy.hashers :as hashers]))
+            [buddy.hashers :as hashers]
+            [cognitect.anomalies :as anom]))
 
 (defn ^:private datomic-to-graphql
   "Transform datomic map to graphql."
@@ -44,6 +45,12 @@
   (db/delete-user [:user/email email])
   email)
 
+(defn ->error
+  [t]
+  (let [anomaly (or (ex-data t) (some-> t .getCause ex-data) {::anom/category ::anom/fault})]
+    {:message (or (::anom/message anomaly) (.getMessage t))
+     :anomaly anomaly}))
+
 (defn register-user
   [_ {{:keys [email password]} :input} _]
   (try
@@ -51,9 +58,7 @@
       (db/create-user {:user/email email :user/encrypted-password encrypted-password})
       {:user (user-by-email nil {:email email} nil)})
     (catch Throwable t
-      (def tt t)
-      #_(resolve-as nil (or (ex-data t) {:message (.getMessage t) :ex-data? false}))
-      (resolve-as nil {:message (.getMessage t) :info (or (ex-data t) (some-> t .getCause ex-data))}))))
+      (resolve-as nil (->error t)))))
 
 (defn login
   [_ {{:keys [email password]} :input} _]

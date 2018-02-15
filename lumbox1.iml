@@ -49,6 +49,7 @@
     <orderEntry type="library" name="Leiningen: clout:2.1.2" level="project" />
     <orderEntry type="library" name="Leiningen: com.cemerick/clojurescript.test:0.2.3-SNAPSHOT" level="project" />
     <orderEntry type="library" name="Leiningen: com.cemerick/piggieback:0.2.2" level="project" />
+    <orderEntry type="library" name="Leiningen: com.cognitect/anomalies:0.1.12" level="project" />
     <orderEntry type="library" name="Leiningen: com.cognitect/transit-clj:0.8.300" level="project" />
     <orderEntry type="library" name="Leiningen: com.cognitect/transit-cljs:0.8.243" level="project" />
     <orderEntry type="library" name="Leiningen: com.cognitect/transit-java:0.8.324" level="project" />

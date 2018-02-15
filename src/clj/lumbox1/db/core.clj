@@ -92,20 +92,10 @@
   [db]
   (d/q '[:find [(pull ?e [*]) ...] :where [?e :user/email _]] db))
 
-(comment
-  (users (d/db conn))
-  )
-
 (defn user
   [db eid]
   (let [x (d/pull db '[*] eid)]
     (when (:user/email x) x)))
-
-(comment
-  (user (db) 1000)
-  (user (db) [:user/email "mick@jones.com"])
-  (user (db) [:user/email "non-existent@email.com"])
-  )
 
 (defn delete-user
   [eid]
