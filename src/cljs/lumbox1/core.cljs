@@ -7,7 +7,8 @@
             [markdown.core :refer [md->html]]
             [ajax.core :refer [GET POST]]
             [lumbox1.ajax :refer [load-interceptors!]]
-            [lumbox1.events])
+            [lumbox1.events]
+            [lumbox1.validation :as v])
   (:import goog.History))
 
 (defn nav-link [uri title page collapsed?]
@@ -21,10 +22,10 @@
 (defn user-menu []
   (if-let [id "id@email.com"]
     #_[:ul.nav.navbar-nav.pull-xs-right
-     [:li.nav-item
-      [:a.dropdown-item.btn
-       {:on-click #(js/alert "click")}
-       [:i.fa.fa-user] " " "id" " | sign out"]]]
+       [:li.nav-item
+        [:a.dropdown-item.btn
+         {:on-click #(js/alert "click")}
+         [:i.fa.fa-user] " " "id" " | sign out"]]]
     [:ul.nav.navbar-nav.pull-xs-right
      [:li.nav-item
       [:a.dropdown-item.btn
@@ -34,42 +35,50 @@
        {:on-click #(rf/dispatch [:set-active-page :register])}
        "register"]]
      #_[:li.nav-item
-      ]]))
+        ]]))
 
 (defn navbar []
   (r/with-let [collapsed? (r/atom true)]
-    [:nav.navbar.navbar-dark.bg-primary
-     [:button.navbar-toggler.hidden-sm-up
-      {:on-click #(swap! collapsed? not)} "☰" #_(pr-str collapsed?)]
-     [:div.collapse.navbar-toggleable-xs
-      (when-not @collapsed? {:class "in"})
-      [:a.navbar-brand {:href "#/"} "lumbox1"]
-      [:ul.nav.navbar-nav
-       [nav-link "#/" "Home" :home collapsed?]
-       [nav-link "#/about" "About" :about collapsed?]]]
-     [user-menu]]))
+              [:nav.navbar.navbar-dark.bg-primary
+               [:button.navbar-toggler.hidden-sm-up
+                {:on-click #(swap! collapsed? not)} "☰" #_(pr-str collapsed?)]
+               [:div.collapse.navbar-toggleable-xs
+                (when-not @collapsed? {:class "in"})
+                [:a.navbar-brand {:href "#/"} "lumbox1"]
+                [:ul.nav.navbar-nav
+                 [nav-link "#/" "Home" :home collapsed?]
+                 [nav-link "#/about" "About" :about collapsed?]]]
+               [user-menu]]))
 
 (defn register-form
   []
   (let [state (r/atom {})]
     (fn []
-      [:form {:on-submit (fn [e] (.preventDefault e)
-                           (rf/dispatch [:register-user (get-in @state [:email :value]) (get-in @state [:password :value])]))}
+      [:form {:noValidate true
+              :on-submit  (fn [e]
+                            (.preventDefault e)
+                            (.stopPropagation e)
+                            (let [[errors input] (v/validate-register-user-input (:input @state))]
+                              (swap! state assoc :errors errors)
+                              (when-not errors
+                                (rf/dispatch [:register-user input]))))}
        [:div.form-group
-        [:label {:for "email"} "Email"]
+        [:label {:for "email"} "Email address"]
         [:input#email.form-control {:type      "email" :placeholder "Enter email"
-                                    :value     (get-in @state [:email :value])
-                                    :on-change #(swap! state assoc-in [:email :value] (-> % .-target .-value))}]
-        [:small#emailHelp.form-text.text-muted "We'll never share your email with anybody else."]]
+                                    :class (when (get-in @state [:errors :email]) "is-invalid")
+                                    :value     (get-in @state [:input :email])
+                                    :on-change #(swap! state assoc-in [:input :email] (-> % .-target .-value))}]
+        [:div.invalid-feedback (get-in @state [:errors :email])]
+        [:small.form-text.text-muted "We'll never share your email with anybody else."]]
        [:div.form-group
         [:label {:for "password"} "Password"]
-        [:input#email.form-control {:type      "password" :placeholder "Enter password"
-                                    :value     (get-in @state [:password :value])
-                                    :on-change #(swap! state assoc-in [:password :value] (-> % .-target .-value))}]
-        [:small#emailHelp.form-text.text-muted "We'll never share your email with anybody else."]]
-       [:div.form-row.form-group.align-items-center
-        [:div.col-auto
-         [:button.btn.btn-primary {:type "submit"} "Register"]]]
+        [:input#password.form-control {:type      "password" :placeholder "Password"
+                                       :class     (when (get-in @state [:errors :password]) "is-invalid")
+                                       :value     (get-in @state [:input :password])
+                                       :on-change #(swap! state assoc-in [:input :password] (-> % .-target .-value))}]
+        [:div.invalid-feedback (get-in @state [:errors :password])]]
+       [:button.btn.btn-primary {:type "submit"} "Register"]
+
        [:div.form-group
         [:label "Status"]
         [:textarea.form-control {:read-only true :value @(rf/subscribe [:status])}]]
@@ -139,8 +148,8 @@
    ])
 
 (def pages
-  {:home  #'home-page
-   :about #'about-page
+  {:home     #'home-page
+   :about    #'about-page
    :register #'register-page})
 
 (defn page []

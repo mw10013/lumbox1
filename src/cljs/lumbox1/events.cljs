@@ -61,7 +61,7 @@
                   [(-> k name (clojure.string/replace \_ \-) keyword) v]) m)))
 
 (defn ^:private clojure-to-graphql
-  "Transform clojure map to graphql"
+  "Transform clojure map to graphql. 1 level deep."
   [m]
   (into {} (map (fn [[k v]]
                   [(-> k name (clojure.string/replace \- \_) keyword) v]) m)))
@@ -121,12 +121,12 @@
 
 (rf/reg-event-fx
   :register-user
-  (fn [_ [_ email password]]
+  (fn [_ [_ input]]
     {:http-xhrio {:method          :post
                   :uri             "/graphql"
                   :params          {:query     "mutation RegisterUser($register_user_input: RegisterUserInput!) {
                   register_user(input: $register_user_input) { user { email id encrypted_password } } }"
-                                    :variables (clojure-to-graphql {:register_user_input {:email email :password password}})}
+                                    :variables {:register_user_input (clojure-to-graphql input)}}
                   :format          (ajax/transit-request-format)
                   :response-format (ajax/transit-response-format)
                   :on-success      [:register-user-succeeded]

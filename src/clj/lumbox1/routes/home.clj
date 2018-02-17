@@ -23,6 +23,7 @@
            (POST "/graphql" req (graphql req))
            (GET "/graphql" req (graphql req))
            (GET "/graphiql" [] (layout/render "graphiql.html"))
+           (GET "/bootstrap" [] (layout/render "bootstrap.html"))
            (GET "/docs" []
              (-> (response/ok (-> "docs/docs.md" io/resource slurp))
                  (response/header "Content-Type" "text/plain; charset=utf-8"))))
