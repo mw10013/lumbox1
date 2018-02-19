@@ -50,56 +50,45 @@
                  [nav-link "#/about" "About" :about collapsed?]]]
                [user-menu]]))
 
-(defn register-form
-  []
-  (let [state (r/atom {})]
-    (fn []
-      (when-let [input-errors @(rf/subscribe [:input-errors :register-user])]
-        (swap! state assoc :errors input-errors))
-      [:form {:noValidate true
-              :on-submit  (fn [e]
-                            (.preventDefault e)
-                            (.stopPropagation e)
-                            (let [[errors input] (v/validate-register-user-input (:input @state))]
-                              (rf/dispatch [:register-user (:input @state)])
-                              #_(swap! state assoc :errors errors)
-                              #_(when-not errors
-                                (rf/dispatch [:register-user input])))
-                            )}
-       [:div.form-group
-        [:label {:for "email"} "Email address"]
-        [:input#email.form-control {:type      "email" :placeholder "Enter email"
-                                    :class (when (get-in @state [:errors :email]) "is-invalid")
-                                    :value     (get-in @state [:input :email])
-                                    :on-change #(swap! state assoc-in [:input :email] (-> % .-target .-value))}]
-        [:div.invalid-feedback (get-in @state [:errors :email])]
-        [:small.form-text.text-muted "We'll never share your email with anybody else."]]
-       [:div.form-group
-        [:label {:for "password"} "Password"]
-        [:input#password.form-control {:type      "password" :placeholder "Password"
-                                       :class     (when (get-in @state [:errors :password]) "is-invalid")
-                                       :value     (get-in @state [:input :password])
-                                       :on-change #(swap! state assoc-in [:input :password] (-> % .-target .-value))}]
-        [:div.invalid-feedback (get-in @state [:errors :password])]]
-       [:button.btn.btn-primary {:type "submit"} "Register"]
+(defn register-form []
+  (let [cache-key :register-user
+        input @(rf/subscribe [:register-user-input])
+        input-errors @(rf/subscribe [:register-user-input-errors])
+        error-message @(rf/subscribe [:register-user-error-message])]
+    [:form {:noValidate true
+            :on-submit  (fn [e]
+                          (.preventDefault e)
+                          (.stopPropagation e)
+                          (let [[input-errors input] (v/validate-register-user-input @(rf/subscribe [:register-user-input]))]
+                            (rf/dispatch [:set-register-user-input-errors input-errors])
+                            (when-not input-errors
+                              (rf/dispatch [:register-user cache-key input]))))}
+     (when error-message [:div.alert.alert-danger error-message])
+     [:div.form-group
+      [:label {:for "email"} "Email address"]
+      [:input#email.form-control {:type      "email" :placeholder "Enter email"
+                                  :class     (when (:email input-errors) "is-invalid")
+                                  :value     (:email input)
+                                  :on-change #(rf/dispatch [:set-register-user-input :email (-> % .-target .-value)])}]
+      [:div.invalid-feedback (:email input-errors)]
+      [:small.form-text.text-muted "We'll never share your email with anybody else."]]
+     [:div.form-group
+      [:label {:for "password"} "Password"]
+      [:input#password.form-control {:type      "password" :placeholder "Password"
+                                     :class     (when (:password input-errors) "is-invalid")
+                                     :value     (:password input)
+                                     :on-change #(rf/dispatch [:set-register-user-input :password (-> % .-target .-value)])}]
+      [:div.invalid-feedback (:password input-errors)]]
+     [:button.btn.btn-primary {:type "submit"} "Register"]
 
-       [:div.form-group
-        [:label "Status"]
-        [:textarea.form-control {:read-only true :value @(rf/subscribe [:status])}]]
-       [:div.form-group
-        [:label "Errors"]
-        [:textarea.form-control {:read-only true :value (pr-str @(rf/subscribe [:errors :register-user]))}]]
-       [:div.form-group
-        [:label "Error Message"]
-        [:textarea.form-control {:read-only true :value (pr-str @(rf/subscribe [:error-message :register-user]))}]]
-       [:div.form-group
-        [:label "Input Errors"]
-        [:textarea.form-control {:read-only true :value (pr-str @(rf/subscribe [:input-errors :register-user]))}]]
-       [:div.form-group
-        [:label "Result"]
-        [:textarea.form-control {:read-only true :value (pr-str @(rf/subscribe [:result]))}]]
-       [:hr]
-       [:div (pr-str @state)]])))
+     [:hr]
+     [:div (pr-str @(rf/subscribe [:cache :register-user]))]
+     [:div.form-group
+      [:label "Status"]
+      [:textarea.form-control {:read-only true :value @(rf/subscribe [:status])}]]
+     [:div.form-group
+      [:label "Result"]
+      [:textarea.form-control {:read-only true :value (pr-str @(rf/subscribe [:result]))}]]]))
 
 (defn register-page []
   [:div.container

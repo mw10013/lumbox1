@@ -10,7 +10,6 @@
 (defn graphql
   [req]
   (let [{{:keys [query variables operation-name operationName]} :params} req
-        _ (println "variables:" variables)
         result (l/execute api/schema (or query (-> req :body slurp)) variables nil
                           {:operation-name (or operation-name operationName)})]
     (if (:errors result)

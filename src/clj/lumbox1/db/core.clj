@@ -139,6 +139,7 @@
 
 (comment
   (create-schema)
+  (create-fn-schema)
   (def x (create-message "Hello message" "author1"))
   (upsert-user {:user/first-name "Mick" :user/last-name "Jones" :user/email "mick@jones.com"})
   (upsert-user {:user/first-name "Mickey" :user/last-name "Jonesy" :user/email "mick@jones.com"})

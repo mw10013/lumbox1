@@ -25,7 +25,7 @@
                 :code "(if (d/entity db [ident-attr value])
                          (let [msg (str value \" already exists for \" ident-attr)]
                            (throw (ex-info msg
-                                         {:congnitect.anomalies/category :congnitect.anomalies/conflict
+                                         {:cognitect.anomalies/category :cognitect.anomalies/conflict
                                           :cognitect.anomalies/message msg
                                           :e e
                                           :attribute ident-attr

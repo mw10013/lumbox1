@@ -21,6 +21,35 @@
   (fn [db [_ docs]]
     (assoc db :docs docs)))
 
+(reg-sub
+  :cache
+  (fn [db [_ k]] (get-in db [:cache k])))
+
+(reg-sub
+  :register-user-input
+  (fn [] (rf/subscribe [:cache :register-user]))
+  (fn [cache] (:input cache)))
+
+(reg-sub
+  :register-user-input-errors
+  (fn [] (rf/subscribe [:cache :register-user]))
+  (fn [cache] (:input-errors cache)))
+
+(reg-sub
+  :register-user-error-message
+  (fn [] (rf/subscribe [:cache :register-user]))
+  (fn [cache] (:error-message cache)))
+
+(reg-event-db
+  :set-register-user-input
+  (fn [db [_ k v]]
+    (assoc-in db [:cache :register-user :input k] v)))
+
+(reg-event-db
+  :set-register-user-input-errors
+  (fn [db [_ input-errors]]
+    (assoc-in db [:cache :register-user :input-errors] input-errors)))
+
 (reg-event-db
   :set-user-first-name
   (fn [db [_ s]] (assoc-in db [:user :first-name] s)))
@@ -42,12 +71,12 @@
 
 (rf/reg-event-db
   :http-xhrio-graphql-failed
-  (fn [db [_ request-type result]]
-    (println "http-xhrio-graphql-failed: errors:" (get-in result [:response :errors]))
-    (-> db
-        (assoc :status "http xhrio graphql failed")
-        (assoc :result result)
-        (assoc-in [:errors request-type] (get-in result [:response :errors])))))
+  (fn [db [_ k result]]
+    (let [error (some-> result (get-in [:response :errors]) first)]
+      (-> db
+          (assoc :status "http xhrio graphql failed")
+          (assoc :result result)
+          (update-in [:cache k] assoc :input-errors (:input-errors error) :error-message (:message error))))))
 
 #_(reg-event-fx
   :api-request-error  ;; triggered when we get request-error from the server
@@ -136,7 +165,7 @@
 
 (rf/reg-event-fx
   :register-user
-  (fn [_ [_ input]]
+  (fn [{db :db} [_ k input]]
     {:http-xhrio {:method          :post
                   :uri             "/graphql"
                   :params          {:query     "mutation RegisterUser($register_user_input: RegisterUserInput!) {
@@ -144,16 +173,16 @@
                                     :variables {:register_user_input (clojure-to-graphql input)}}
                   :format          (ajax/transit-request-format)
                   :response-format (ajax/transit-response-format)
-                  :on-success      [:register-user-succeeded]
-                  :on-failure      [:http-xhrio-graphql-failed :register-user]}}))
+                  :on-success      [:register-user-succeeded k]
+                  :on-failure      [:http-xhrio-graphql-failed k]}}))
 
 (rf/reg-event-db
   :register-user-succeeded
-  (fn [db [e result]]
+  (fn [db [e k result]]
     (-> db
         (assoc :status e)
         (assoc :result result)
-        (update :errors dissoc :register-user))))
+        (update-in [:cache k] dissoc :input-errors :error-message))))
 
 ;;subscriptions
 
@@ -172,25 +201,6 @@
 (reg-sub
   :result
   (fn [db _] (:result db)))
-
-(reg-sub
-  :errors
-  (fn [db [_ request-type]] (get-in db [:errors request-type])))
-
-(reg-sub
-  :input-errors
-  (fn [[_ request-type]]
-    (rf/subscribe [:errors request-type]))
-  (fn [errors]
-    (some-> errors first :input-errors)))
-
-(reg-sub
-  :error-message
-  (fn [[_ request-type]]
-    (rf/subscribe [:errors request-type]))
-  (fn [errors]
-    (println ":error-message: errors:" errors)
-    (some-> errors first :message)))
 
 (reg-sub
   :user/email

@@ -62,7 +62,10 @@
           (db/create-user {:user/email email :user/encrypted-password encrypted-password})
           {:user (user-by-email nil {:email email} nil)})
         (catch Throwable t
-          (resolve-as nil (->error t)))))))
+          (let [error (->error t)]
+            (if (= (get-in error [:anomaly ::anom/category]) ::anom/conflict)
+              (resolve-as nil (assoc error :input-errors {:email "Email already used."}))
+              (resolve-as nil error))))))))
 
 (defn login
   [_ {{:keys [email password]} :input} _]
