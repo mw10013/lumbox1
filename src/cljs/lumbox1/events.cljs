@@ -152,7 +152,8 @@
   (fn [db [e result]]
     (-> db
         (assoc :status e)
-        (assoc :result result))))
+        (assoc :result result)
+        (update :errors dissoc :register-user))))
 
 ;;subscriptions
 
@@ -175,6 +176,21 @@
 (reg-sub
   :errors
   (fn [db [_ request-type]] (get-in db [:errors request-type])))
+
+(reg-sub
+  :input-errors
+  (fn [[_ request-type]]
+    (rf/subscribe [:errors request-type]))
+  (fn [errors]
+    (some-> errors first :input-errors)))
+
+(reg-sub
+  :error-message
+  (fn [[_ request-type]]
+    (rf/subscribe [:errors request-type]))
+  (fn [errors]
+    (println ":error-message: errors:" errors)
+    (some-> errors first :message)))
 
 (reg-sub
   :user/email

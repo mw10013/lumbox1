@@ -54,16 +54,18 @@
   []
   (let [state (r/atom {})]
     (fn []
+      (when-let [input-errors @(rf/subscribe [:input-errors :register-user])]
+        (swap! state assoc :errors input-errors))
       [:form {:noValidate true
               :on-submit  (fn [e]
                             (.preventDefault e)
                             (.stopPropagation e)
                             (let [[errors input] (v/validate-register-user-input (:input @state))]
-                              #_(swap! state assoc :errors errors)
-                              #_(rf/dispatch [:register-user {:email "bee@sting.com" :password "letmein"}])
                               (rf/dispatch [:register-user (:input @state)])
+                              #_(swap! state assoc :errors errors)
                               #_(when-not errors
-                                (rf/dispatch [:register-user input]))))}
+                                (rf/dispatch [:register-user input])))
+                            )}
        [:div.form-group
         [:label {:for "email"} "Email address"]
         [:input#email.form-control {:type      "email" :placeholder "Enter email"
@@ -88,8 +90,14 @@
         [:label "Errors"]
         [:textarea.form-control {:read-only true :value (pr-str @(rf/subscribe [:errors :register-user]))}]]
        [:div.form-group
+        [:label "Error Message"]
+        [:textarea.form-control {:read-only true :value (pr-str @(rf/subscribe [:error-message :register-user]))}]]
+       [:div.form-group
+        [:label "Input Errors"]
+        [:textarea.form-control {:read-only true :value (pr-str @(rf/subscribe [:input-errors :register-user]))}]]
+       [:div.form-group
         [:label "Result"]
-        [:textarea.form-control {:read-only true :value (str @(rf/subscribe [:result]))}]]
+        [:textarea.form-control {:read-only true :value (pr-str @(rf/subscribe [:result]))}]]
        [:hr]
        [:div (pr-str @state)]])))
 
