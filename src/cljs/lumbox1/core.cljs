@@ -52,15 +52,15 @@
 
 (defn register-form []
   (let [cache-key :register-user
-        input @(rf/subscribe [:register-user-input])
-        input-errors @(rf/subscribe [:register-user-input-errors])
-        error-message @(rf/subscribe [:register-user-error-message])]
+        input @(rf/subscribe [:input cache-key])
+        input-errors @(rf/subscribe [:input-errors cache-key])
+        error-message @(rf/subscribe [:error-message cache-key])]
     [:form {:noValidate true
             :on-submit  (fn [e]
                           (.preventDefault e)
                           (.stopPropagation e)
-                          (let [[input-errors input] (v/validate-register-user-input @(rf/subscribe [:register-user-input]))]
-                            (rf/dispatch [:set-register-user-input-errors input-errors])
+                          (let [[input-errors input] (v/validate-register-user-input @(rf/subscribe [:input cache-key]))]
+                            (rf/dispatch [:set-input-errors cache-key input-errors])
                             (when-not input-errors
                               (rf/dispatch [:register-user cache-key input]))))}
      (when error-message [:div.alert.alert-danger error-message])
@@ -69,7 +69,7 @@
       [:input#email.form-control {:type      "email" :placeholder "Enter email"
                                   :class     (when (:email input-errors) "is-invalid")
                                   :value     (:email input)
-                                  :on-change #(rf/dispatch [:set-register-user-input :email (-> % .-target .-value)])}]
+                                  :on-change #(rf/dispatch [:set-input cache-key :email (-> % .-target .-value)])}]
       [:div.invalid-feedback (:email input-errors)]
       [:small.form-text.text-muted "We'll never share your email with anybody else."]]
      [:div.form-group
@@ -77,7 +77,7 @@
       [:input#password.form-control {:type      "password" :placeholder "Password"
                                      :class     (when (:password input-errors) "is-invalid")
                                      :value     (:password input)
-                                     :on-change #(rf/dispatch [:set-register-user-input :password (-> % .-target .-value)])}]
+                                     :on-change #(rf/dispatch [:set-input cache-key :password (-> % .-target .-value)])}]
       [:div.invalid-feedback (:password input-errors)]]
      [:button.btn.btn-primary {:type "submit"} "Register"]
 

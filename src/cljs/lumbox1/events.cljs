@@ -1,8 +1,10 @@
 (ns lumbox1.events
   (:require [lumbox1.db :as db]
-            [re-frame.core :as rf :refer [dispatch reg-event-db reg-sub]]
+            [reagent.core :as r]
+            [re-frame.core :as rf :refer [dispatch reg-event-db reg-sub reg-sub-raw subscribe]]
             [ajax.core :as ajax]
-            [day8.re-frame.http-fx]))
+            [day8.re-frame.http-fx])
+  (:require-macros [reagent.ratom :refer [reaction]]))
 
 ;;dispatchers
 
@@ -16,39 +18,37 @@
   (fn [db [_ page]]
     (assoc db :page page)))
 
-#_(reg-event-db
-  :set-docs
-  (fn [db [_ docs]]
-    (assoc db :docs docs)))
-
 (reg-sub
   :cache
   (fn [db [_ k]] (get-in db [:cache k])))
 
-(reg-sub
-  :register-user-input
-  (fn [] (rf/subscribe [:cache :register-user]))
-  (fn [cache] (:input cache)))
+(reg-sub-raw
+  :input
+  (fn [_ [_ cache-key]]
+    (reaction
+      (:input @(rf/subscribe [:cache cache-key])))))
 
-(reg-sub
-  :register-user-input-errors
-  (fn [] (rf/subscribe [:cache :register-user]))
-  (fn [cache] (:input-errors cache)))
+(reg-sub-raw
+  :input-errors
+  (fn [_ [_ cache-key]]
+    (reaction
+      (:input-errors @(rf/subscribe [:cache cache-key])))))
 
-(reg-sub
-  :register-user-error-message
-  (fn [] (rf/subscribe [:cache :register-user]))
-  (fn [cache] (:error-message cache)))
-
-(reg-event-db
-  :set-register-user-input
-  (fn [db [_ k v]]
-    (assoc-in db [:cache :register-user :input k] v)))
+(reg-sub-raw
+  :error-message
+  (fn [_ [_ cache-key]]
+    (reaction
+      (:error-message @(rf/subscribe [:cache cache-key])))))
 
 (reg-event-db
-  :set-register-user-input-errors
-  (fn [db [_ input-errors]]
-    (assoc-in db [:cache :register-user :input-errors] input-errors)))
+  :set-input
+  (fn [db [_ cache-key k v]]
+    (assoc-in db [:cache cache-key :input k] v)))
+
+(reg-event-db
+  :set-input-errors
+  (fn [db [_ cache-key input-errors]]
+    (assoc-in db [:cache cache-key :input-errors] input-errors)))
 
 (reg-event-db
   :set-user-first-name
@@ -165,7 +165,7 @@
 
 (rf/reg-event-fx
   :register-user
-  (fn [{db :db} [_ k input]]
+  (fn [{db :db} [_ cache-key input]]
     {:http-xhrio {:method          :post
                   :uri             "/graphql"
                   :params          {:query     "mutation RegisterUser($register_user_input: RegisterUserInput!) {
@@ -173,16 +173,16 @@
                                     :variables {:register_user_input (clojure-to-graphql input)}}
                   :format          (ajax/transit-request-format)
                   :response-format (ajax/transit-response-format)
-                  :on-success      [:register-user-succeeded k]
-                  :on-failure      [:http-xhrio-graphql-failed k]}}))
+                  :on-success      [:register-user-succeeded cache-key]
+                  :on-failure      [:http-xhrio-graphql-failed cache-key]}}))
 
 (rf/reg-event-db
   :register-user-succeeded
-  (fn [db [e k result]]
+  (fn [db [e cache-key result]]
     (-> db
         (assoc :status e)
         (assoc :result result)
-        (update-in [:cache k] dissoc :input-errors :error-message))))
+        (update-in [:cache cache-key] dissoc :input-errors :error-message))))
 
 ;;subscriptions
 
