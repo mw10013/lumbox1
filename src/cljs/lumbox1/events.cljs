@@ -40,6 +40,21 @@
         (assoc :status "http xhrio failed")
         (assoc :result result))))
 
+(rf/reg-event-db
+  :http-xhrio-graphql-failed
+  (fn [db [_ request-type result]]
+    (println "http-xhrio-graphql-failed: errors:" (get-in result [:response :errors]))
+    (-> db
+        (assoc :status "http xhrio graphql failed")
+        (assoc :result result)
+        (assoc-in [:errors request-type] (get-in result [:response :errors])))))
+
+#_(reg-event-fx
+  :api-request-error  ;; triggered when we get request-error from the server
+  (fn [{:keys [db]} [_ request-type response]]  ;; destructure to obtain request-type and response
+    {:db (assoc-in db [:errors request-type] (get-in response [:response :errors]))  ;; save in db so that we can
+     :dispatch [:complete-request request-type]}))
+
 (rf/reg-event-fx
   :get-user-by-email
   (fn [cofx [_ email]]
@@ -130,7 +145,7 @@
                   :format          (ajax/transit-request-format)
                   :response-format (ajax/transit-response-format)
                   :on-success      [:register-user-succeeded]
-                  :on-failure      [:http-xhrio-failed]}}))
+                  :on-failure      [:http-xhrio-graphql-failed :register-user]}}))
 
 (rf/reg-event-db
   :register-user-succeeded
@@ -156,6 +171,10 @@
 (reg-sub
   :result
   (fn [db _] (:result db)))
+
+(reg-sub
+  :errors
+  (fn [db [_ request-type]] (get-in db [:errors request-type])))
 
 (reg-sub
   :user/email

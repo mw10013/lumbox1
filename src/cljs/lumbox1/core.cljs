@@ -59,8 +59,10 @@
                             (.preventDefault e)
                             (.stopPropagation e)
                             (let [[errors input] (v/validate-register-user-input (:input @state))]
-                              (swap! state assoc :errors errors)
-                              (when-not errors
+                              #_(swap! state assoc :errors errors)
+                              #_(rf/dispatch [:register-user {:email "bee@sting.com" :password "letmein"}])
+                              (rf/dispatch [:register-user (:input @state)])
+                              #_(when-not errors
                                 (rf/dispatch [:register-user input]))))}
        [:div.form-group
         [:label {:for "email"} "Email address"]
@@ -82,6 +84,9 @@
        [:div.form-group
         [:label "Status"]
         [:textarea.form-control {:read-only true :value @(rf/subscribe [:status])}]]
+       [:div.form-group
+        [:label "Errors"]
+        [:textarea.form-control {:read-only true :value (pr-str @(rf/subscribe [:errors :register-user]))}]]
        [:div.form-group
         [:label "Result"]
         [:textarea.form-control {:read-only true :value (str @(rf/subscribe [:result]))}]]

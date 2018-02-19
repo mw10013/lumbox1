@@ -9,11 +9,13 @@
 
 (defn graphql
   [req]
-  (let [{{:keys [query variables operation-name operationName]} :params} req]
-    (def r req)
-    #_(def body (slurp (:body req)))
-    (response/ok (l/execute api/schema (or query (-> req :body slurp)) variables nil
-                            {:operation-name (or operation-name operationName)}))))
+  (let [{{:keys [query variables operation-name operationName]} :params} req
+        _ (println "variables:" variables)
+        result (l/execute api/schema (or query (-> req :body slurp)) variables nil
+                          {:operation-name (or operation-name operationName)})]
+    (if (:errors result)
+      (response/bad-request result)
+      (response/ok result))))
 
 (defn home-page []
   (layout/render "home.html"))

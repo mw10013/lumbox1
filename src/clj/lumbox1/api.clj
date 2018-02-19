@@ -10,7 +10,8 @@
             [lumbox1.db.core :as db]
             [clojure.string :as str]
             [buddy.hashers :as hashers]
-            [cognitect.anomalies :as anom]))
+            [cognitect.anomalies :as anom]
+            [lumbox1.validation :as v]))
 
 (defn ^:private datomic-to-graphql
   "Transform datomic map to graphql."
@@ -52,13 +53,16 @@
      :anomaly anomaly}))
 
 (defn register-user
-  [_ {{:keys [email password]} :input} _]
-  (try
-    (let [encrypted-password (hashers/encrypt password)]
-      (db/create-user {:user/email email :user/encrypted-password encrypted-password})
-      {:user (user-by-email nil {:email email} nil)})
-    (catch Throwable t
-      (resolve-as nil (->error t)))))
+  [_ {:keys [input]} _]
+  (let [[errors {:keys [email password]}] (v/validate-register-user-input input)]
+    (if errors
+      (resolve-as nil {:message "Invalid input." :anomaly {::anom/anomaly ::anom/incorrect} :input-errors errors})
+      (try
+        (let [encrypted-password (hashers/encrypt password)]
+          (db/create-user {:user/email email :user/encrypted-password encrypted-password})
+          {:user (user-by-email nil {:email email} nil)})
+        (catch Throwable t
+          (resolve-as nil (->error t)))))))
 
 (defn login
   [_ {{:keys [email password]} :input} _]
