@@ -12,7 +12,7 @@
   :db/fn    #db/fn {:lang     "clojure"
                     :requires [[clojure.set] [datomic.api :as d]]
                     :params   [db eid a new-refs]
-                    :code     "(let [old-refs (->> eid (d/entity db) a (map :db/id) set)
+                    :code     "(let [old-refs (->> eid (d/entity db) a (map #(if (keyword? %) (d/entity db %) %)) (map :db/id) set)
                                     new-refs (->> new-refs (map (comp :db/id (partial d/entity db))) set)
                                     stale-refs (clojure.set/difference old-refs new-refs)]
                                 (map #(vector :db/retract eid a %) stale-refs))"}}

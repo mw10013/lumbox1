@@ -63,7 +63,7 @@
       (resolve-as nil {:message "Invalid input." :anomaly {::anom/category ::anom/incorrect} :input-errors errors})
       (try
         (let [encrypted-password (hashers/encrypt password)]
-          (db/create-user {:user/email email :user/encrypted-password encrypted-password})
+          (db/create-user {:user/email email :user/encrypted-password encrypted-password :user/roles #{:user.role/user}})
           {:user (user-by-email nil {:email email} nil)})
         (catch Throwable t
           (let [error (->error t)]

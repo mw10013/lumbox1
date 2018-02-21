@@ -66,32 +66,43 @@
        (d/transact conn)
        deref))
 
-#_(defn entity [conn id]
-    (d/entity (d/db conn) id))
-
-#_(defn touch [conn results]
-    "takes 'entity ids' results from a query
-      e.g. '#{[272678883689461] [272678883689462] [272678883689459] [272678883689457]}'"
-    (let [e (partial entity conn)]
-      (map #(-> % first e d/touch) results)))
-
 (defn create-user
-  [{:keys [:user/email :user/encrypted-password] :as user}]
-  @(d/transact conn [{:db/id "tempid" :user/encrypted-password encrypted-password}
+  [{:keys [:user/email :user/encrypted-password :user/roles] :as user}]
+  @(d/transact conn [{:db/id "tempid" :user/encrypted-password encrypted-password :user/roles roles}
                      [:add-identity "tempid" :user/email email]]))
 
+(defn retract-stale-many-refs
+  [db eid a new-refs]
+  (let [old-refs (->> eid (d/entity db) a (map #(if (keyword? %) (d/entity db %) %)) (map :db/id) set)
+        _ (println "old-refs:" old-refs)
+        new-refs (->> new-refs (map (comp :db/id (partial d/entity db))) set)
+        _ (println "new-refs:" new-refs)
+        stale-refs (clojure.set/difference old-refs new-refs)]
+    (map #(vector :db/retract eid a %) stale-refs)))
 
+(comment
+  (users (db))
+  (create-user {:user/email "foo@email.com" :user/encrypted-password (hashers/encrypt "letmein") :user/roles #{:user.role/user}})
+  (create-user {:user/email "foo@email.com" :user/encrypted-password (hashers/encrypt "letmein") :user/roles #{:user.role/user :user.role/support}})
+  (upsert-user {:user/email "foo@email.com" :user/roles #{:user.role/user}})
+  (upsert-user {:user/email "foo@email.com" :user/roles #{:user.role/user :user.role/support}})
+  (upsert-user {:user/email "foo@email.com" :user/friends #{[:user/email "thomas@dolby.com"]}})
+  (upsert-user {:user/email "foo@email.com" :user/friends #{}})
+  (upsert-user {:user/email "foo@email.com" :user/roles #{}})
+  (user (db) [:user/email "foo@email.com"])
+  (retract-stale-many-refs (db) [:user/email "foo@email.com"] :user/roles #{:user.role/admin})
+  (retract-stale-many-refs (db) [:user/email "foo@email.com"] :user/roles #{})
+  (retract-stale-many-refs (db) [:user/email "foo@email.com"] :user/friends #{[:user/email "thomas@dolby.com"]})
+  (delete-user [:user/email "foo@email.com"])
+  )
 
 (defn upsert-user
   [{:keys [:db/id :user/email :user/roles :user/friends] :as user}]
-  (let [t (apply conj [user] (when friends [[:retract-stale-many-refs (or id [:user/email email]) :user/friends friends]]))]
+  (let [t (apply conj [user] (when roles [[:retract-stale-many-refs (or id [:user/email email]) :user/roles roles]]))
+        _ (println "upsert-user: roles: " roles "t: " t)
+        t (apply conj t (when friends [[:retract-stale-many-refs (or id [:user/email email]) :user/friends friends]]))]
+    (println "upsert-user: t:" t)
     @(d/transact conn t)))
-
-#_(defn find-user [conn email]
-    (let [user (d/q '[:find ?e :in $ ?email
-                      :where [?e :user/email ?email]]
-                    (d/db conn) email)]
-      (touch conn user)))
 
 (def user-pattern '[* {[:user/roles] [:db/ident]} {[:user/friends] [:db/id :user/email]}])
 
@@ -105,11 +116,6 @@
   [db eid]
   (let [x (d/pull db user-pattern eid)]
     (when (:user/email x) x)))
-
-(comment
-  (users (db))
-  (d/pull (db) '[* {[:user/roles] [:db/ident]} {[:user/friends] [:db/id :user/email]}] [:user/email "thomas@dolby.com"])
-  )
 
 (defn delete-user
   [eid]
@@ -144,12 +150,12 @@
 (defn populate []
   (upsert-user {:user/email      "mick@jones.com" :user/encrypted-password (hashers/encrypt "letmein")
                 :user/roles      #{:user.role/user}
-                :user/first-name "Mick" :user/last-name "Jones" :user/nickname   "Mickey"})
+                :user/first-name "Mick" :user/last-name "Jones" :user/nickname "Mickey"})
   (upsert-user {:user/email      "mick@jagger.com" :user/encrypted-password (hashers/encrypt "letmein")
-                :user/roles #{:user.role/user :user.role/support}
+                :user/roles      #{:user.role/user :user.role/support}
                 :user/first-name "Mick" :user/last-name "Jagger"})
   (upsert-user {:user/email      "thomas@dolby.com" :user/encrypted-password (hashers/encrypt "letmein")
-                :user/roles #{:user.role/user :user.role/support :user.role/admin}
+                :user/roles      #{:user.role/user :user.role/support :user.role/admin}
                 :user/first-name "Thomas" :user/last-name "Dolby"
                 :user/friends    [[:user/email "mick@jones.com"]]})
   (upsert-user {:user/email "mick@jones.com" :user/friends [[:user/email "mick@jagger.com"] [:user/email "thomas@dolby.com"]]}))
