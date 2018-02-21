@@ -15,16 +15,8 @@
         result (l/execute api/schema (or query (-> req :body slurp)) variables context
                           {:operation-name (or operation-name operationName)})
         response (if (:errors result) (response/bad-request result) (response/ok result))
-        session-side-effect (:session @side-effects ::not-found)]
-    (println "graphql: session:" (:session req))
-    (def se side-effects)
-    (def c context)
-    (def r response)
-    #_(cond
-      (= session-side-effect ::not-found) response
-      (nil? session-side-effect) (dissoc response :session)
-      :else (assoc response :session session-side-effect))
-    (assoc response :session {:foo "bar"})))
+        session (:session @side-effects ::not-found)]       ; nil will clear the session.
+    (if (= session ::not-found) response (assoc response :session session))))
 
 (defn home-page []
   (layout/render "home.html"))
@@ -40,8 +32,8 @@
       (assoc :headers {"Content-Type" "text/plain"})))
 
 (defn clear-session! []
-  (-> (ring.util.response/response "Session cleared")
-      (dissoc :session)
+  (-> (response/ok "Session cleared")
+      (assoc :session nil)
       (assoc :headers {"Content-Type" "text/plain"})))
 
 (defn dump-session [{session :session}]

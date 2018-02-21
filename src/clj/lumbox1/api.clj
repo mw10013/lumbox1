@@ -72,15 +72,18 @@
   (if-let [user (db/user (db/db) [:user/email email])]
     (if (hashers/check password (:user/encrypted-password user))
       (let [session (or (-> context :side-effects deref :session) (:session context {}))
-            session (assoc session :email "email")]
+            session (assoc-in session [:user :email] email)]
         (swap! (:side-effects context) assoc :session session)
         {:user (datomic-to-graphql user)})
       (resolve-as nil {:message "Unauthorized." :anomaly {::anom/category ::anom/forbidden}}))
     (resolve-as nil {:message "User not found." :anomaly {::anom/category ::anom/not-found}})))
 
 (defn logout
-  [_ _ _]
-  (resolve-as nil {:message "User not found." :status 404}))
+  [context _ _]
+  (let [email (get-in context [:session :user :email])
+        user (db/user (db/db) [:user/email email])]
+    (swap! (:side-effects context) assoc :session nil)
+    {:user (datomic-to-graphql user)}))
 
 (defn random-die-roll-once
   [_ _ {:keys [num_sides]}]

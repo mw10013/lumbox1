@@ -2,9 +2,7 @@
 # For use with graphiql
 
 query Users {
-  users {
-    email id encrypted_password
-  }
+  users { email id encrypted_password }
 }
 
 mutation RegisterUser($register_user_input: RegisterUserInput!) {
@@ -21,8 +19,14 @@ mutation DeleteUserByEmail($delete_user_by_email_input: String!) {
 
 mutation Login($login_input: LoginInput!) {
  login(input: $login_input) {
-  	user { email id encrypted_password }
+  	user { email id }
  }
+}
+
+mutation Logout {
+  logout {
+    user { email id }
+  }
 }
 
 # Variables
