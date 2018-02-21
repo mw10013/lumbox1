@@ -25,7 +25,9 @@
   :RegisterUserPayload {:description "Register user payload."
                         :fields      {:user {:type (non-null :User)}}}
   :LoginPayload        {:description "Login payload."
-                        :fields      {:user {:type (non-null :User)}}}}
+                        :fields      {:user {:type (non-null :User)}}}
+  :LogoutPayload {:description "Logout payload."
+                  :fields {:user {:type (non-null :User)}}}}
  :input-objects
  {:MessageInput      {:fields {:content {:type String}
                                :author  {:type String}}}
@@ -87,6 +89,10 @@
    :resolve     :mutation/register-user}
   :login
   {:type        :LoginPayload
-     :description "Login."
-     :args        {:input {:type (non-null :LoginInput)}}
-     :resolve     :mutation/login}}}
+   :description "Login."
+   :args        {:input {:type (non-null :LoginInput)}}
+   :resolve     :mutation/login}
+  :logout
+  {:type        :LogoutPayload
+   :description "Logout."
+   :resolve     :mutation/logout}}}

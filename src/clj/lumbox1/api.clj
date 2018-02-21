@@ -56,7 +56,7 @@
   [_ {:keys [input]} _]
   (let [[errors {:keys [email password]}] (v/validate-register-user-input input)]
     (if errors
-      (resolve-as nil {:message "Invalid input." :anomaly {::anom/anomaly ::anom/incorrect} :input-errors errors})
+      (resolve-as nil {:message "Invalid input." :anomaly {::anom/category ::anom/incorrect} :input-errors errors})
       (try
         (let [encrypted-password (hashers/encrypt password)]
           (db/create-user {:user/email email :user/encrypted-password encrypted-password})
@@ -68,12 +68,19 @@
               (resolve-as nil error))))))))
 
 (defn login
-  [_ {{:keys [email password]} :input} _]
+  [context {{:keys [email password]} :input} _]
   (if-let [user (db/user (db/db) [:user/email email])]
     (if (hashers/check password (:user/encrypted-password user))
-      {:user (datomic-to-graphql user)}
-      (resolve-as nil {:message "Unauthorized." :status 401}))
-    (resolve-as nil {:message "User not found." :status 404})))
+      (let [session (or (-> context :side-effects deref :session) (:session context {}))
+            session (assoc session :email "email")]
+        (swap! (:side-effects context) assoc :session session)
+        {:user (datomic-to-graphql user)})
+      (resolve-as nil {:message "Unauthorized." :anomaly {::anom/category ::anom/forbidden}}))
+    (resolve-as nil {:message "User not found." :anomaly {::anom/category ::anom/not-found}})))
+
+(defn logout
+  [_ _ _]
+  (resolve-as nil {:message "User not found." :status 404}))
 
 (defn random-die-roll-once
   [_ _ {:keys [num_sides]}]
@@ -133,7 +140,8 @@
                                              :mutation/upsert-user   upsert-user
                                              :mutation/delete-user-by-email delete-user-by-email
                                              :mutation/register-user register-user
-                                             :mutation/login login})
+                                             :mutation/login login
+                                             :mutation/logout logout})
                      schema/compile))
 
 (comment

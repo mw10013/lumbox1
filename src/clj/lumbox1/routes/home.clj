@@ -10,14 +10,43 @@
 (defn graphql
   [req]
   (let [{{:keys [query variables operation-name operationName]} :params} req
-        result (l/execute api/schema (or query (-> req :body slurp)) variables nil
-                          {:operation-name (or operation-name operationName)})]
-    (if (:errors result)
-      (response/bad-request result)
-      (response/ok result))))
+        side-effects (atom {})
+        context {:session (:session req) :side-effects side-effects}
+        result (l/execute api/schema (or query (-> req :body slurp)) variables context
+                          {:operation-name (or operation-name operationName)})
+        response (if (:errors result) (response/bad-request result) (response/ok result))
+        session-side-effect (:session @side-effects ::not-found)]
+    (println "graphql: session:" (:session req))
+    (def se side-effects)
+    (def c context)
+    (def r response)
+    #_(cond
+      (= session-side-effect ::not-found) response
+      (nil? session-side-effect) (dissoc response :session)
+      :else (assoc response :session session-side-effect))
+    (assoc response :session {:foo "bar"})))
 
 (defn home-page []
   (layout/render "home.html"))
+
+(defn set-user! [id {session :session}]
+  (-> (ring.util.response/response (str "User set to: " id))
+      (assoc :session (assoc session :user id))
+      (assoc :headers {"Content-Type" "text/plain"})))
+
+(defn remove-user! [{session :session}]
+  (-> (ring.util.response/response "User removed")
+      (assoc :session (dissoc session :user))
+      (assoc :headers {"Content-Type" "text/plain"})))
+
+(defn clear-session! []
+  (-> (ring.util.response/response "Session cleared")
+      (dissoc :session)
+      (assoc :headers {"Content-Type" "text/plain"})))
+
+(defn dump-session [{session :session}]
+  (-> (ring.util.response/response (str "Session: " session))
+      (assoc :headers {"Content-Type" "text/plain"})))
 
 (defroutes home-routes
            (GET "/" [] (home-page))
@@ -25,6 +54,10 @@
            (GET "/graphql" req (graphql req))
            (GET "/graphiql" [] (layout/render "graphiql.html"))
            (GET "/bootstrap" [] (layout/render "bootstrap.html"))
+           (GET "/login/:id" [id :as req] (set-user! id req))
+           (GET "/session" req (dump-session req))
+           (GET "/remove" req (remove-user! req))
+           (GET "/logout" req (clear-session!))
            (GET "/docs" []
              (-> (response/ok (-> "docs/docs.md" io/resource slurp))
                  (response/header "Content-Type" "text/plain; charset=utf-8"))))
