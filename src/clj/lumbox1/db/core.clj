@@ -98,10 +98,10 @@
 
 (defn upsert-user
   [{:keys [:db/id :user/email :user/roles :user/friends] :as user}]
-  (let [t (apply conj [user] (when roles [[:retract-stale-many-refs (or id [:user/email email]) :user/roles roles]]))
-        _ (println "upsert-user: roles: " roles "t: " t)
-        t (apply conj t (when friends [[:retract-stale-many-refs (or id [:user/email email]) :user/friends friends]]))]
-    (println "upsert-user: t:" t)
+  (let [eid (or id [:user/email email])
+        t (concat [user]
+                  (when roles [[:retract-stale-many-refs eid :user/roles roles]])
+                  (when friends [[:retract-stale-many-refs eid :user/friends friends]]))]
     @(d/transact conn t)))
 
 (def user-pattern '[* {[:user/roles] [:db/ident]} {[:user/friends] [:db/id :user/email]}])
