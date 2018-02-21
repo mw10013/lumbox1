@@ -2,7 +2,7 @@
 # For use with graphiql
 
 query Users {
-  users { email id encrypted_password }
+  users { email id encrypted_password roles }
 }
 
 mutation RegisterUser($register_user_input: RegisterUserInput!) {

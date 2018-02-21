@@ -24,6 +24,10 @@
   [_ _ _]
   (map datomic-to-graphql (db/users (db/db))))
 
+(defn user-roles
+  [_ _ {roles :roles}]
+  (map (comp keyword clojure.string/upper-case name :db/ident) roles))
+
 (defn user-friends
   [_ _ {friends :friends}]
   (map #(-> % :db/id (partial db/user (db/db)) datomic-to-graphql) friends))
@@ -124,7 +128,9 @@
           :start (-> (io/resource "schema/api-schema.edn")
                      slurp
                      edn/read-string
-                     (util/attach-resolvers {:User/friends user-friends
+                     (util/attach-resolvers {:User/roles user-roles
+                                             :User/friends user-friends
+
                                              :random-die/roll-once random-die-roll-once
                                              :random-die/rolls random-die-rolls
                                              :query/hello            (constantly "world!")
@@ -136,15 +142,18 @@
                                                                        (repeatedly num_dice #(-> num_sides (or 6) rand-int inc)))
                                              :query/get-die get-die #_(fn [_ {:keys [num_sides] :or {:num_sides 6}} _] {:num_sides num_sides})
                                              :query/get-message get-message
+
                                              :query/users users
                                              :query/user-by-email    user-by-email
+
                                              :mutation/create-message create-message
                                              :mutation/update-message update-message
-                                             :mutation/upsert-user   upsert-user
-                                             :mutation/delete-user-by-email delete-user-by-email
+
                                              :mutation/register-user register-user
                                              :mutation/login login
-                                             :mutation/logout logout})
+                                             :mutation/logout logout
+                                             :mutation/upsert-user   upsert-user
+                                             :mutation/delete-user-by-email delete-user-by-email})
                      schema/compile))
 
 (comment

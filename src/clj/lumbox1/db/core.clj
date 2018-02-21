@@ -93,20 +93,30 @@
                     (d/db conn) email)]
       (touch conn user)))
 
+(def user-pattern '[* {[:user/roles] [:db/ident]} {[:user/friends] [:db/id :user/email]}])
+
 (defn users
   [db]
-  (d/q '[:find [(pull ?e [*]) ...] :where [?e :user/email _]] db))
+  (d/q '[:find [(pull ?e pattern) ...]
+         :where [?e :user/email _]
+         :in $ pattern] db user-pattern))
 
 (defn user
   [db eid]
-  (let [x (d/pull db '[*] eid)]
+  (let [x (d/pull db user-pattern eid)]
     (when (:user/email x) x)))
+
+(comment
+  (users (db))
+  (d/pull (db) '[* {[:user/roles] [:db/ident]} {[:user/friends] [:db/id :user/email]}] [:user/email "thomas@dolby.com"])
+  )
 
 (defn delete-user
   [eid]
   @(d/transact conn [[:db.fn/retractEntity eid]]))
 
 (comment
+  (user (db) [:user/email "thomas@dolby.com"])
   (upsert-user {:user/first-name "Sting" :user/last-name "" :user/email "sting@sting.com" :user/friends #{}})
   (user (db) [:user/email "sting@sting.com"])
   (delete-user [:user/email "sting@sting.com"])
@@ -114,7 +124,6 @@
 
 (defn get-message
   [id]
-  #_(d/pull (d/db conn) '[*] id)
   (d/entity (d/db conn) id))
 
 (defn create-message
@@ -153,6 +162,7 @@
   (upsert-user {:user/first-name "Mickey" :user/last-name "Jonesy" :user/email "mick@jones.com"})
   (upsert-user {:user/first-name "Mickey" :user/last-name "" :user/email "mick@jones.com"})
   (upsert-user {:user/first-name "Sting" :user/last-name "" :user/email "sting@sting.com" :user/friends #{}})
+  (user (db) [:user/email "mick@jones.com"])
   (user (db) [:user/email "mick@jagger.com"])
   (user (db) [:user/email "thomas@dolby.com"])
   (user (db) [:user/email "sting@sting.com"])
@@ -171,5 +181,10 @@
   (d/invoke (d/db conn) :retract-stale-many-refs (d/db conn) [:user/email "mick@jones.com"] :user/friends [])
   (d/invoke (d/db conn) :foo-fn (d/db conn))
   (d/invoke (d/db conn) :bar-fn (d/db conn))
+
+  (d/pull (db) '[{[:user/roles] [:db/ident]}] [:user/email "thomas@dolby.com"])
+  (d/pull (db) '[* {[:user/roles] [:db/ident]} {[:user/friends] [:db/id :user/email]}] [:user/email "thomas@dolby.com"])
+
+  (users (db))
 
   )

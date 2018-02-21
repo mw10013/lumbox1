@@ -1,14 +1,21 @@
-{:objects
+{:enums
+ {:Role
+  {:description "Role of user."
+   :values      [:USER :SUPPORT :ADMIN]}}
+ :objects
  {:User                {:description "User"
                         :fields      {:id                 {:type (non-null ID)}
+                                      :email              {:type        String
+                                                           :description "Email of user."}
+                                      :encrypted_password {:type        (non-null String)
+                                                           :description "Encrypted password of user."}
+                                      :roles              {:type        (non-null (list :Role))
+                                                           :description "The roles of user."
+                                                           :resolve     :User/roles}
                                       :first_name         {:type        String
                                                            :description "First name of user."}
                                       :last_name          {:type        String
                                                            :description "Last name of user."}
-                                      :email              {:type        String
-                                                           :description "Email of user."}
-                                      :encrypted_password {:type        String
-                                                           :description "Encrypted password of user."}
                                       :friends            {:type        (list :User)
                                                            :description "Friends of user."
                                                            :resolve     :User/friends}}}
@@ -26,8 +33,8 @@
                         :fields      {:user {:type (non-null :User)}}}
   :LoginPayload        {:description "Login payload."
                         :fields      {:user {:type (non-null :User)}}}
-  :LogoutPayload {:description "Logout payload."
-                  :fields {:user {:type (non-null :User)}}}}
+  :LogoutPayload       {:description "Logout payload."
+                        :fields      {:user {:type (non-null :User)}}}}
  :input-objects
  {:MessageInput      {:fields {:content {:type String}
                                :author  {:type String}}}
