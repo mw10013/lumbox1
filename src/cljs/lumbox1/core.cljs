@@ -33,9 +33,14 @@
        "home"]
       [:a.dropdown-item.btn
        {:on-click #(rf/dispatch [:set-active-page :register])}
-       "register"]]
-     #_[:li.nav-item
-        ]]))
+       "register"]
+      [:a.dropdown-item.btn
+       {:on-click #(rf/dispatch [:set-active-page :login])}
+       "login"]
+      [:a.dropdown-item.btn
+       {:on-click #(rf/dispatch [:set-active-page :logout])}
+       "logout"]]
+     ]))
 
 (defn navbar []
   (r/with-let [collapsed? (r/atom true)]
@@ -82,7 +87,7 @@
      [:button.btn.btn-primary {:type "submit"} "Register"]
 
      [:hr]
-     [:div (pr-str @(rf/subscribe [:cache :register-user]))]
+     [:div (pr-str @(rf/subscribe [:cache cache-key]))]
      [:div.form-group
       [:label "Status"]
       [:textarea.form-control {:read-only true :value @(rf/subscribe [:status])}]]
@@ -94,6 +99,55 @@
   [:div.container
    [:h3 "Register"]
    [register-form]])
+
+(defn login-form []
+  (let [cache-key :login
+        input @(rf/subscribe [:input cache-key])
+        input-errors @(rf/subscribe [:input-errors cache-key])
+        error-message @(rf/subscribe [:error-message cache-key])]
+    [:form {:noValidate true
+            :on-submit  (fn [e]
+                          (.preventDefault e)
+                          (.stopPropagation e)
+                          (let [[input-errors input] (v/validate-login-input @(rf/subscribe [:input cache-key]))]
+                            (rf/dispatch [:set-input-errors cache-key input-errors])
+                            (when-not input-errors
+                              (rf/dispatch [:login cache-key input]))))}
+     (when error-message [:div.alert.alert-danger error-message])
+     [:div.form-group
+      [:label {:for "email"} "Email address"]
+      [:input#email.form-control {:type      "email" :placeholder "Enter email"
+                                  :class     (when (:email input-errors) "is-invalid")
+                                  :value     (:email input)
+                                  :on-change #(rf/dispatch [:set-input cache-key :email (-> % .-target .-value)])}]
+      [:div.invalid-feedback (:email input-errors)]]
+     [:div.form-group
+      [:label {:for "password"} "Password"]
+      [:input#password.form-control {:type      "password" :placeholder "Password"
+                                     :class     (when (:password input-errors) "is-invalid")
+                                     :value     (:password input)
+                                     :on-change #(rf/dispatch [:set-input cache-key :password (-> % .-target .-value)])}]
+      [:div.invalid-feedback (:password input-errors)]]
+     [:button.btn.btn-primary {:type "submit"} "Login"]
+
+     [:hr]
+     [:div (pr-str @(rf/subscribe [:cache cache-key]))]
+     [:div (pr-str @(rf/subscribe [:identity]))]
+     [:div.form-group
+      [:label "Status"]
+      [:textarea.form-control {:read-only true :value @(rf/subscribe [:status])}]]
+     [:div.form-group
+      [:label "Result"]
+      [:textarea.form-control {:read-only true :value (pr-str @(rf/subscribe [:result]))}]]]))
+
+(defn login-page []
+  [:div.container
+   [:h3 "Login"]
+   [login-form]])
+
+(defn logout-page []
+  [:div.container
+   [:h3 "Logout"]])
 
 (defn about-page []
   [:div.container
@@ -152,7 +206,9 @@
 (def pages
   {:home     #'home-page
    :about    #'about-page
-   :register #'register-page})
+   :register #'register-page
+   :login #'login-page
+   :logout #'logout-page})
 
 (defn page []
   [:div

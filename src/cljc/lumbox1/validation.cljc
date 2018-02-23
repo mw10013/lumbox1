@@ -8,6 +8,8 @@
                              [st/string :message "Must be a string."]
                              [st/min-count 6 :message "Length must be at least 6." ]]}))
 
+(def validate-login-input validate-register-user-input)
+
 (comment
   (validate-register-user-input {})
   (validate-register-user-input {:email "bee@sting.com"})

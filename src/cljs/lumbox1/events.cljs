@@ -110,6 +110,11 @@
   (into {} (map (fn [[k v]]
                   [(-> k name (clojure.string/replace \- \_) keyword) v]) m)))
 
+(defn ^:private gql-enum-to-clj
+  "TODO: Map _ to -."
+  [k]
+  (-> k name clojure.string/lower-case keyword))
+
 (rf/reg-event-db
   :get-user-by-email-succeeded
   (fn [db [e result]]
@@ -183,6 +188,33 @@
         (assoc :status e)
         (assoc :result result)
         (update-in [:cache cache-key] dissoc :input-errors :error-message))))
+
+(rf/reg-event-fx
+  :login
+  (fn [{db :db} [_ cache-key input]]
+    {:http-xhrio {:method          :post
+                  :uri             "/graphql"
+                  :params          {:query     "mutation Login($login_input: LoginInput!) {
+                  login(input: $login_input) { user { email roles } } }"
+                                    :variables {:login_input (clojure-to-graphql input)}}
+                  :format          (ajax/transit-request-format)
+                  :response-format (ajax/transit-response-format)
+                  :on-success      [:login-succeeded cache-key]
+                  :on-failure      [:http-xhrio-graphql-failed cache-key]}}))
+
+(rf/reg-event-db
+  :login-succeeded
+  (fn [db [e cache-key result]]
+    (-> db
+        (assoc :status e)
+        (assoc :result result)
+        (assoc :identity (-> result :data :login :user graphql-to-clojure
+                             (update :roles #(->> % (map gql-enum-to-clj) set))))
+        (update-in [:cache cache-key] dissoc :input-errors :error-message))))
+
+(reg-sub
+  :identity
+  (fn [db _] (:identity db)))
 
 ;;subscriptions
 
