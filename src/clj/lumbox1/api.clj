@@ -26,7 +26,7 @@
 
 (defn user-roles
   [_ _ {roles :roles}]
-  (map (comp keyword clojure.string/upper-case name :db/ident) roles))
+  (map (comp keyword clojure.string/upper-case name) roles))
 
 (defn user-friends
   [_ _ {friends :friends}]
@@ -73,21 +73,24 @@
 
 (defn login
   [context {{:keys [email password]} :input} _]
-  (if-let [user (db/user (db/db) [:user/email email])]
-    (if (hashers/check password (:user/encrypted-password user))
-      (let [session (or (-> context :side-effects deref :session) (:session context {}))
-            session (assoc-in session [:user :email] email)]
-        (swap! (:side-effects context) assoc :session session)
-        {:user (datomic-to-graphql user)})
-      (resolve-as nil {:message "Unauthorized." :anomaly {::anom/category ::anom/forbidden}}))
-    (resolve-as nil {:message "User not found." :anomaly {::anom/category ::anom/not-found}})))
+  (if (get-in context [:session :identity :user/email])
+    (resolve-as nil {:message "Already logged in." :anomaly {::anom/category ::anom/fault}})
+    (if-let [user (db/user (db/db) [:user/email email])]
+      (if (hashers/check password (:user/encrypted-password user))
+        (let [session (or (-> context :side-effects deref :session) (:session context {}))
+              session (assoc session :identity (select-keys user [:user/email :user/roles]))]
+          (swap! (:side-effects context) assoc :session session)
+          {:user (datomic-to-graphql user)})
+        (resolve-as nil {:message "Invalid login credentials" :anomaly {::anom/category ::anom/forbidden}}))
+      (resolve-as nil {:message "Invalid login credentials." :anomaly {::anom/category ::anom/forbidden}}))))
 
 (defn logout
   [context _ _]
-  (let [email (get-in context [:session :user :email])
-        user (db/user (db/db) [:user/email email])]
-    (swap! (:side-effects context) assoc :session nil)
-    {:user (datomic-to-graphql user)}))
+  (let [email (get-in context [:session :identity :user/email])]
+    (swap! (:side-effects context) assoc :session nil)      ; always clear session.
+    (if email
+      {:user (datomic-to-graphql (db/user (db/db) [:user/email email]))}
+      (resolve-as nil {:message "Not logged in." :anomaly {::anom/category ::anom/fault}}))))
 
 (defn random-die-roll-once
   [_ _ {:keys [num_sides]}]

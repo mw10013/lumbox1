@@ -90,6 +90,7 @@
   (upsert-user {:user/email "foo@email.com" :user/friends #{}})
   (upsert-user {:user/email "foo@email.com" :user/roles #{}})
   (user (db) [:user/email "foo@email.com"])
+  (user (db) [:user/email "thomas@dolby.com"])
   (retract-stale-many-refs (db) [:user/email "foo@email.com"] :user/roles #{:user.role/admin})
   (retract-stale-many-refs (db) [:user/email "foo@email.com"] :user/roles #{})
   (retract-stale-many-refs (db) [:user/email "foo@email.com"] :user/friends #{[:user/email "thomas@dolby.com"]})
@@ -106,15 +107,22 @@
 
 (def user-pattern '[* {[:user/roles] [:db/ident]} {[:user/friends] [:db/id :user/email]}])
 
+(defn idents->keywords
+  "Pull returns ident enumeration refs as maps of {:db/ident :keyword}.
+  Return set of keywords."
+  [coll]
+  (into #{} (map :db/ident coll)))
+
 (defn users
   [db]
-  (d/q '[:find [(pull ?e pattern) ...]
-         :where [?e :user/email _]
-         :in $ pattern] db user-pattern))
+  (->> (d/q '[:find [(pull ?e pattern) ...]
+              :where [?e :user/email _]
+              :in $ pattern] db user-pattern)
+       (map #(update % :user/roles idents->keywords))))
 
 (defn user
   [db eid]
-  (let [x (d/pull db user-pattern eid)]
+  (let [x (-> (d/pull db user-pattern eid) (update :user/roles idents->keywords))]
     (when (:user/email x) x)))
 
 (defn delete-user
