@@ -22,6 +22,11 @@
   :cache
   (fn [db [_ k]] (get-in db [:cache k])))
 
+#_(reg-event-db
+    :clear-cache
+    (fn [db [_ cache-key]]
+      (update db :cache dissoc :cache-key)))
+
 (reg-sub-raw
   :input
   (fn [_ [_ cache-key]]
@@ -79,10 +84,10 @@
           (update-in [:cache k] assoc :input-errors (:input-errors error) :error-message (:message error))))))
 
 #_(reg-event-fx
-  :api-request-error  ;; triggered when we get request-error from the server
-  (fn [{:keys [db]} [_ request-type response]]  ;; destructure to obtain request-type and response
-    {:db (assoc-in db [:errors request-type] (get-in response [:response :errors]))  ;; save in db so that we can
-     :dispatch [:complete-request request-type]}))
+    :api-request-error                                      ;; triggered when we get request-error from the server
+    (fn [{:keys [db]} [_ request-type response]]            ;; destructure to obtain request-type and response
+      {:db       (assoc-in db [:errors request-type] (get-in response [:response :errors])) ;; save in db so that we can
+       :dispatch [:complete-request request-type]}))
 
 (rf/reg-event-fx
   :get-user-by-email
@@ -152,8 +157,8 @@
     (let [email (or email (-> cofx :db :user :email))]
       {:http-xhrio {:method          :post
                     :uri             "/graphql"
-                    :params          {:query         "mutation DeleteUserByEmail($email: String!) { delete_user_by_email(email: $email) }"
-                                      :variables     {:email email}}
+                    :params          {:query     "mutation DeleteUserByEmail($email: String!) { delete_user_by_email(email: $email) }"
+                                      :variables {:email email}}
                     :format          (ajax/json-request-format)
                     :response-format (ajax/transit-response-format)
                     :on-success      [:delete-user-by-email-succeeded]
@@ -187,7 +192,12 @@
     (-> db
         (assoc :status e)
         (assoc :result result)
-        (update-in [:cache cache-key] dissoc :input-errors :error-message))))
+        (update :cache dissoc cache-key)
+        (assoc :page :login))))
+
+(reg-sub
+  :identity
+  (fn [db _] (:identity db)))
 
 (rf/reg-event-fx
   :login
@@ -210,11 +220,28 @@
         (assoc :result result)
         (assoc :identity (-> result :data :login :user graphql-to-clojure
                              (update :roles #(->> % (map gql-enum-to-clj) set))))
-        (update-in [:cache cache-key] dissoc :input-errors :error-message))))
+        (update :cache dissoc cache-key))))
 
-(reg-sub
-  :identity
-  (fn [db _] (:identity db)))
+(rf/reg-event-fx
+  :logout
+  (fn [{db :db} [_ cache-key input]]
+    {:http-xhrio {:method          :post
+                  :uri             "/graphql"
+                  :params          {:query "mutation { logout { user { email } } }"}
+                  :format          (ajax/transit-request-format)
+                  :response-format (ajax/transit-response-format)
+                  :on-success      [:logout-succeeded cache-key]
+                  :on-failure      [:http-xhrio-graphql-failed cache-key]}
+     :dispatch   [:set-active-page :logout]}))
+
+(rf/reg-event-db
+  :logout-succeeded
+  (fn [db [e cache-key result]]
+    (-> db
+        (assoc :status e)
+        (assoc :result result)
+        (dissoc :identity)
+        (update :cache dissoc cache-key))))
 
 ;;subscriptions
 

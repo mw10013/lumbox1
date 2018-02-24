@@ -38,7 +38,7 @@
        {:on-click #(rf/dispatch [:set-active-page :login])}
        "login"]
       [:a.dropdown-item.btn
-       {:on-click #(rf/dispatch [:set-active-page :logout])}
+       {:on-click #(rf/dispatch [:logout :logout])}
        "logout"]]
      ]))
 
@@ -54,6 +54,13 @@
                  [nav-link "#/" "Home" :home collapsed?]
                  [nav-link "#/about" "About" :about collapsed?]]]
                [user-menu]]))
+
+(defn debug-cache [cache-key]
+  [:div [:hr]
+   [:div "cache-key: " cache-key ": " (pr-str @(rf/subscribe [:cache cache-key]))]
+   [:div "identity: " (pr-str @(rf/subscribe [:identity]))]
+   [:div "status: " @(rf/subscribe [:status])]
+   [:div "result: " @(rf/subscribe [:result])]])
 
 (defn register-form []
   (let [cache-key :register-user
@@ -85,15 +92,7 @@
                                      :on-change #(rf/dispatch [:set-input cache-key :password (-> % .-target .-value)])}]
       [:div.invalid-feedback (:password input-errors)]]
      [:button.btn.btn-primary {:type "submit"} "Register"]
-
-     [:hr]
-     [:div (pr-str @(rf/subscribe [:cache cache-key]))]
-     [:div.form-group
-      [:label "Status"]
-      [:textarea.form-control {:read-only true :value @(rf/subscribe [:status])}]]
-     [:div.form-group
-      [:label "Result"]
-      [:textarea.form-control {:read-only true :value (pr-str @(rf/subscribe [:result]))}]]]))
+     [debug-cache cache-key]]))
 
 (defn register-page []
   [:div.container
@@ -129,16 +128,7 @@
                                      :on-change #(rf/dispatch [:set-input cache-key :password (-> % .-target .-value)])}]
       [:div.invalid-feedback (:password input-errors)]]
      [:button.btn.btn-primary {:type "submit"} "Login"]
-
-     [:hr]
-     [:div (pr-str @(rf/subscribe [:cache cache-key]))]
-     [:div (pr-str @(rf/subscribe [:identity]))]
-     [:div.form-group
-      [:label "Status"]
-      [:textarea.form-control {:read-only true :value @(rf/subscribe [:status])}]]
-     [:div.form-group
-      [:label "Result"]
-      [:textarea.form-control {:read-only true :value (pr-str @(rf/subscribe [:result]))}]]]))
+     [debug-cache cache-key]]))
 
 (defn login-page []
   [:div.container
@@ -146,8 +136,12 @@
    [login-form]])
 
 (defn logout-page []
-  [:div.container
-   [:h3 "Logout"]])
+  (let [cache-key :logout
+        error-message @(rf/subscribe [:error-message cache-key])]
+    [:div.container
+     [:h3 "Logout"]
+     (when error-message [:div.alert.alert-danger error-message])
+     [debug-cache cache-key]]))
 
 (defn about-page []
   [:div.container
@@ -207,8 +201,8 @@
   {:home     #'home-page
    :about    #'about-page
    :register #'register-page
-   :login #'login-page
-   :logout #'logout-page})
+   :login    #'login-page
+   :logout   #'logout-page})
 
 (defn page []
   [:div
