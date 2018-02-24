@@ -38,7 +38,7 @@
   (if-let [x (db/user (db/db) [:user/email email])]
     (datomic-to-graphql x)
     (resolve-as nil {:message "User not found."
-                     :status 404})))
+                     :status  404})))
 
 (defn upsert-user
   [_ args _]
@@ -96,88 +96,25 @@
       {:user (datomic-to-graphql (db/user (db/db) [:user/email email]))}
       (resolve-as nil {:message "Not logged in." :anomaly {::anom/category ::anom/fault}}))))
 
-(defn random-die-roll-once
-  [_ _ {:keys [num_sides]}]
-  (-> num_sides rand-int inc))
-
-(defn random-die-rolls
-  [_ {:keys [num_rolls]} die]
-  (repeatedly num_rolls #(random-die-roll-once nil nil die)))
-
-(defn get-message
-  [_ {id :id} _]
-  (if-let [e (db/get-message (Long. id))]
-    {:id id :content (:msg/content e) :author (:msg/author e)}
-    (throw (Exception. (str "Message with ID " id " does not exist.")))))
-
-(defn create-message
-  [_ {{:keys [content author]} :input} _]
-  (let [e (db/create-message content author)]
-    {:id (-> e :db/id str) :content (:msg/content e) :author (:msg/author e)}))
-
-(defn update-message
-  [_ {id :id {:keys [content author]} :input} _]
-  (let [e (db/update-message (Long. id) content author)]
-    {:id (-> e :db/id str) :content (:msg/content e) :author (:msg/author e)}))
-
-(defn get-die
-  #_[_ {:keys [num_sides] :or {:num_sides 6}} _]
-  [_ {:keys [num_sides]} _]
-  {:num_sides (or num_sides 6)})
-
-(def hello-schema (schema/compile
-                    {:queries {:hello
-                               ;; String is quoted here; in EDN the quotation is not required
-                               {:type    'String
-                                :resolve (constantly "world")}}}))
-
 (defstate schema
           :start (-> (io/resource "schema/api-schema.edn")
                      slurp
                      edn/read-string
-                     (util/attach-resolvers {:User/roles user-roles
-                                             :User/friends user-friends
+                     (util/attach-resolvers {:User/roles                    user-roles
+                                             :User/friends                  user-friends
 
-                                             :random-die/roll-once random-die-roll-once
-                                             :random-die/rolls random-die-rolls
-                                             :query/hello            (constantly "world!")
-                                             :query/quote-of-the-day (fn [& _] (if (< (rand) 0.5) "Easy does it." "Salvation lies within."))
-                                             :query/random           (fn [& _] (rand))
-                                             :query/roll-three-dice  (fn [& _] (repeatedly 3 (comp inc (partial rand-int 6))))
-                                             :query/roll-dice        (fn [_ {:keys [num_dice num_sides]} _]
+                                             :query/users                   users
+                                             :query/user-by-email           user-by-email
 
-                                                                       (repeatedly num_dice #(-> num_sides (or 6) rand-int inc)))
-                                             :query/get-die get-die #_(fn [_ {:keys [num_sides] :or {:num_sides 6}} _] {:num_sides num_sides})
-                                             :query/get-message get-message
-
-                                             :query/users users
-                                             :query/user-by-email    user-by-email
-
-                                             :mutation/create-message create-message
-                                             :mutation/update-message update-message
-
-                                             :mutation/register-user register-user
-                                             :mutation/login login
-                                             :mutation/logout logout
-                                             :mutation/upsert-user   upsert-user
+                                             :mutation/register-user        register-user
+                                             :mutation/login                login
+                                             :mutation/logout               logout
+                                             :mutation/upsert-user          upsert-user
                                              :mutation/delete-user-by-email delete-user-by-email})
                      schema/compile))
 
 (comment
-   (mount.core/start #'lumbox1.api/schema)
-  (l/execute schema "{hello}" nil nil)
-  (l/execute schema "{quote_of_the_day}" nil nil)
-  (l/execute schema "{random}" nil nil)
-  (l/execute schema "{roll_three_dice}" nil nil)
-  (l/execute schema "{roll_dice(num_dice: 10, num_sides: 7)}" nil nil)
-  (l/execute schema "{roll_dice(num_dice: 10)}" nil nil)
-  (l/execute schema "{roll_dice(num_sides: 10)}" nil nil)
-  (l/execute schema "{get_die(num_sides: 10) {num_sides roll_once rolls(num_rolls: 10)}}" nil nil)
-  (l/execute schema "{get_message(id: \"17592186045435\") { id content author }}" nil nil)
-  (l/execute schema "mutation CreateMessage($input: MessageInput) {create_message(input: $input) {id content author}}"
-             {:input {:content "new content" :author "new author"}} nil)
-  (l/execute schema "mutation UpdateMessage($id: ID!, $input: MessageInput) {update_message(id: $id, input: $input) {id content author}}"
-             {:id "17592186045435" :input {:content "modified content" :author "modified author"}} nil)
+  (mount.core/start #'lumbox1.api/schema)
   (l/execute schema "{user_by_email(email: \"mick@jones.com\") { first_name }}" nil nil)
   (l/execute schema "{user_by_email(email: \"mick@jones.com\") { first_name last_name email id }}" nil nil)
   (l/execute schema "query UserByEmail($email: String!) { user_by_email(email: $email) { id first_name last_name email __typename}}"
@@ -189,9 +126,9 @@
              {:email "howard@jones.com" :first_name "Howard" :last_name "Jones"} nil)
   (l/execute schema "mutation UpsertUser($email: String!, $first_name: String = \"\", $last_name: String = \"\") { upsert_user(email: $email, first_name: $first_name, last_name: $last_name) { id first_name last_name email}}"
              {:email "howard@jones.com" :first_name "Howie"} nil)
-   (l/execute schema "{ user_by_email(email: \"howard@jones.com\") { id email first_name last_name  }}" nil nil)
-   (l/execute schema "mutation M {delete_user_by_email(email: \"howard@jones.com\")}  " nil nil)
-   )
+  (l/execute schema "{ user_by_email(email: \"howard@jones.com\") { id email first_name last_name  }}" nil nil)
+  (l/execute schema "mutation M {delete_user_by_email(email: \"howard@jones.com\")}  " nil nil)
+  )
 
 (comment
   (l/execute schema

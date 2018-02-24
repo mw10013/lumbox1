@@ -19,16 +19,6 @@
                                       :friends            {:type        (list :User)
                                                            :description "Friends of user."
                                                            :resolve     :User/friends}}}
-  :RandomDie           {:description "A random die."
-                        :fields      {:num_sides {:type (non-null Int)}
-                                      :roll_once {:type (non-null Int) :resolve :random-die/roll-once}
-                                      :rolls     {:type    (list Int)
-                                                  :args    {:num_rolls {:type (non-null Int)}}
-                                                  :resolve :random-die/rolls}}}
-  :Message             {:description "A message."
-                        :fields      {:id      {:type (non-null ID)}
-                                      :content {:type String}
-                                      :author  {:type String}}}
   :RegisterUserPayload {:description "Register user payload."
                         :fields      {:user {:type (non-null :User)}}}
   :LoginPayload        {:description "Login payload."
@@ -36,28 +26,12 @@
   :LogoutPayload       {:description "Logout payload."
                         :fields      {:user {:type (non-null :User)}}}}
  :input-objects
- {:MessageInput      {:fields {:content {:type String}
-                               :author  {:type String}}}
-  :RegisterUserInput {:fields {:email    {:type (non-null String)}
+ {:RegisterUserInput {:fields {:email    {:type (non-null String)}
                                :password {:type (non-null String)}}}
   :LoginInput        {:fields {:email    {:type (non-null String)}
                                :password {:type (non-null String)}}}}
  :queries
- {:hello            {:type String :resolve :query/hello}
-  :quote_of_the_day {:type String :resolve :query/quote-of-the-day}
-  :random           {:type (non-null Float) :resolve :query/random}
-  :roll_three_dice  {:type (list Int) :resolve :query/roll-three-dice}
-  :roll_dice        {:type    (list Int)
-                     :args    {:num_dice  {:type (non-null Int)}
-                               :num_sides {:type Int}}
-                     :resolve :query/roll-dice}
-  :get_die          {:type    :RandomDie
-                     :args    {:num_sides {:type Int}}
-                     :resolve :query/get-die}
-  :get_message      {:type    :Message
-                     :args    {:id {:type (non-null ID)}}
-                     :resolve :query/get-message}
-  :users            {:type        (list :User)
+ {:users            {:type        (list :User)
                      :description "Get all users."
                      :resolve     :query/users}
   :user_by_email    {:type        :User
@@ -65,18 +39,7 @@
                      :args        {:email {:type (non-null String)}}
                      :resolve     :query/user-by-email}}
  :mutations
- {:create_message
-  {:type        :Message
-   :description "Create a new message."
-   :args        {:input {:type :MessageInput}}
-   :resolve     :mutation/create-message}
-  :update_message
-  {:type        :Message
-   :description "Update a message."
-   :args        {:id    {:type (non-null ID)}
-                 :input {:type :MessageInput}}
-   :resolve     :mutation/update-message}
-  :upsert_user
+ {:upsert_user
   {:type        :User
    :description "Upsert a user."
    :args

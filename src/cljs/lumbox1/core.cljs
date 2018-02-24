@@ -151,10 +151,6 @@
 
 (defn home-page []
   [:div.container
-   #_(when-let [docs @(rf/subscribe [:docs])]
-       [:div.row>div.col-sm-12
-        [:div {:dangerouslySetInnerHTML
-               {:__html (md->html docs)}}]])
    [:form {:on-submit #(rf/dispatch [:get-user])}
     [:div.form-group
      [:label {:for "email"} "Email"]
@@ -232,9 +228,6 @@
 
 ;; -------------------------
 ;; Initialize app
-(defn fetch-docs! []
-  (GET "/docs" {:handler #(rf/dispatch [:set-docs %])}))
-
 (defn mount-components []
   (rf/clear-subscription-cache!)
   (r/render [#'page] (.getElementById js/document "app")))
@@ -242,6 +235,5 @@
 (defn init! []
   (rf/dispatch-sync [:initialize-db])
   (load-interceptors!)
-  #_(fetch-docs!)
   (hook-browser-navigation!)
   (mount-components))

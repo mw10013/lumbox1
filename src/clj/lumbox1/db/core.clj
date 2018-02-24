@@ -47,15 +47,7 @@
                  :db/cardinality :db.cardinality/one}
                 {:db/ident       :user/friends
                  :db/valueType   :db.type/ref
-                 :db/cardinality :db.cardinality/many}
-
-                {:db/ident       :msg/content
-                 :db/valueType   :db.type/string
-                 :db/cardinality :db.cardinality/one}
-                {:db/ident       :msg/author
-                 :db/valueType   :db.type/string
-                 :db/cardinality :db.cardinality/one}
-                ]]
+                 :db/cardinality :db.cardinality/many}]]
     @(d/transact conn schema)))
 
 (defn create-fn-schema []
@@ -136,25 +128,6 @@
   (delete-user [:user/email "sting@sting.com"])
   )
 
-(defn get-message
-  [id]
-  (d/entity (d/db conn) id))
-
-(defn create-message
-  [content author]
-  (let [tx @(d/transact conn [{:db/id       "tempid"
-                               :msg/content content
-                               :msg/author  author}])]
-    #_(d/entity (:db-after tx) (d/resolve-tempid (:db-after tx) (:temptids tx) "tempid"))
-    (d/entity (:db-after tx) (get-in tx [:tempids "tempid"]))))
-
-(defn update-message
-  [id content author]
-  (let [tx @(d/transact conn [{:db/id       id
-                               :msg/content content
-                               :msg/author  author}])]
-    (d/entity (:db-after tx) id)))
-
 (defn populate []
   (upsert-user {:user/email      "mick@jones.com" :user/encrypted-password (hashers/encrypt "letmein")
                 :user/roles      #{:user.role/user}
@@ -171,7 +144,6 @@
 (comment
   (create-schema)
   (create-fn-schema)
-  (def x (create-message "Hello message" "author1"))
   (upsert-user {:user/first-name "Mick" :user/last-name "Jones" :user/email "mick@jones.com"})
   (upsert-user {:user/first-name "Mickey" :user/last-name "Jonesy" :user/email "mick@jones.com"})
   (upsert-user {:user/first-name "Mickey" :user/last-name "" :user/email "mick@jones.com"})
