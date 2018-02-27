@@ -26,9 +26,26 @@
                  [org.webjars.bower/tether "1.4.3"]
                  [org.webjars/bootstrap "4.0.0"]
                  [org.webjars/font-awesome "5.0.2"]
-                 [re-frame "0.10.2"]
-                 [reagent "0.7.0"]
+
+                 [cljsjs/react "15.6.2-4"]
+                 [cljsjs/react-dom "15.6.2-4"]
+                 [cljsjs/react-dom-server "15.6.2-4"]
+
+                 #_[reagent "0.7.0"]
+                 [reagent "0.7.0" :exclusions [cljsjs/react-dom cljsjs/react-dom-server]]
                  [reagent-utils "0.2.1"]
+                 #_[re-frame "0.10.2"]
+                 [re-frame "0.10.2" :exclusions [reagent]]
+
+                 [cljsjs/react-transition-group "2.2.1-0" :exclusions [cljsjs/react]]
+
+                 [cljsjs/reactstrap "4.8.0-0" :exclusions [cljsjs/react cljsjs/react-dom cljsjs/react-transition-group]]
+                 #_[cljsjs/reactstrap "4.2.0-1"]
+                 #_[cljsjs/reactstrap "4.2.0-1" :exclusions [cljsjs/react-with-addons cljsjs/react-dom]]
+
+
+                 [baking-soda "0.1.3" :exclusions [reagent cljsjs/reactstrap cljsjs/react-bootstrap]]
+
                  [ring-webjars "0.2.0"]
                  [ring/ring-core "1.6.3"]
                  [ring/ring-defaults "0.3.1"]

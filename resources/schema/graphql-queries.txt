@@ -8,7 +8,7 @@ query Users {
 mutation RegisterUser($register_user_input: RegisterUserInput!) {
   register_user(input: $register_user_input) {
   	user {
-      email id encrypted_password
+      email id encrypted_password roles
     }
   }
 }
@@ -19,7 +19,7 @@ mutation DeleteUserByEmail($delete_user_by_email_input: String!) {
 
 mutation Login($login_input: LoginInput!) {
  login(input: $login_input) {
-  	user { email id }
+  	user { email id roles }
  }
 }
 

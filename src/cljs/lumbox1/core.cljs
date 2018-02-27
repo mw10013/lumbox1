@@ -8,7 +8,9 @@
             [ajax.core :refer [GET POST]]
             [lumbox1.ajax :refer [load-interceptors!]]
             [lumbox1.events]
-            [lumbox1.validation :as v])
+            [lumbox1.validation :as v]
+            [cljsjs.react-transition-group]
+            [baking-soda.core :as b])
   (:import goog.History))
 
 (defn nav-link [uri title page collapsed?]
@@ -151,6 +153,10 @@
 
 (defn home-page []
   [:div.container
+   [:div
+    [b/Button {:on-click #(js/alert "click!")}
+     "Button"]
+    [:p "Baking Soda"]]
    [:form {:on-submit #(rf/dispatch [:get-user])}
     [:div.form-group
      [:label {:for "email"} "Email"]
