@@ -41,10 +41,10 @@
     <orderEntry type="library" name="Leiningen: clj-tuple:0.2.2" level="project" />
     <orderEntry type="library" name="Leiningen: cljs-ajax:0.7.3" level="project" />
     <orderEntry type="library" name="Leiningen: cljsjs/create-react-class:15.5.3-0" level="project" />
-    <orderEntry type="library" name="Leiningen: cljsjs/react-dom-server:15.6.2-4" level="project" />
-    <orderEntry type="library" name="Leiningen: cljsjs/react-dom:15.6.2-4" level="project" />
+    <orderEntry type="library" name="Leiningen: cljsjs/react-dom-server:16.2.0-3" level="project" />
+    <orderEntry type="library" name="Leiningen: cljsjs/react-dom:16.2.0-3" level="project" />
     <orderEntry type="library" name="Leiningen: cljsjs/react-transition-group:2.2.1-0" level="project" />
-    <orderEntry type="library" name="Leiningen: cljsjs/react:15.6.2-4" level="project" />
+    <orderEntry type="library" name="Leiningen: cljsjs/react:16.2.0-3" level="project" />
     <orderEntry type="library" name="Leiningen: cljsjs/reactstrap:4.8.0-0" level="project" />
     <orderEntry type="library" name="Leiningen: clojure-complete:0.2.4" level="project" />
     <orderEntry type="library" name="Leiningen: clojure-future-spec:1.9.0-alpha17" level="project" />
